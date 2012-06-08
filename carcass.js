@@ -447,6 +447,11 @@ Carcass.Client = function(/**String*/ host, /**Number*/ port, /**String*/ protoc
     this.port = port || location.port || Carcass.DEFAULT_PORT;
     this.protocol = protocol || location.protocol.replace(':', '') || Carcass.DEFAULT_PROTOCOL;
     this.timeout = Carcass.DEFAULT_TIMEOUT;
+    
+    if (!/\d/.test(this.port)) {
+
+        throw new TypeError("Invalid port number '" + this.port + "'");
+    }
 };
 Carcass.Client.prototype = new XMLHttpRequest();
 Carcass.Client.prototype.constructor = XMLHttpRequest;
@@ -466,7 +471,7 @@ Carcass.Client.prototype.toString = function() {
 Carcass.Client.prototype.open = function(/**String*/ method, /**String*/ path) {
     
     // this request is always asynchronous (the last argument is always true)
-    return Carcass.Client.parent.open.call(this, method, this.protocol + '://' + this.host + ':' + this.port + '/' + path, true);
+    return Carcass.Client.parent.open.call(this, method, this.protocol + '://' + this.host + ':' + this.port + (!/^\/.*/.test(path) ? '/' : '') + path, true);
 };
 
 /**
