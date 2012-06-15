@@ -680,100 +680,115 @@ Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth
         
         if (this.readyState === XMLHttpRequest.DONE) {
             
-            if (this.status !== 207) {
-                
-                throw new Carcass.UnexpectedResponseStatus(this.status, 'PROPFIND');
-            }
+            // on successful request
+            if (this.status === 207) {
             
-            // create the namespace resolver from the XML document
-            nsResolver = this.responseXML.createNSResolver(this.responseXML.documentElement);
-            
-            // get the list of resources
-            nodes = this.responseXML.evaluate(Carcass.XPATH_RESOURCES, this.responseXML, nsResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            
-            // create a resource object from each XML resource element
-            resources = [];
-            for (i = 0; i < nodes.snapshotLength; i += 1 ) {
-                
-                // read the XML element
-                tmp = nodes.snapshotItem(i);
-                
-                // create the resource object
-                r = this.responseXML.evaluate(Carcass.XPATH_IS_COLLECTION, tmp, nsResolver, XPathResult.BOOLEAN_TYPE, null).booleanValue ? new Carcass.Collection() : new Carcass.Resource();
-                
-                // set the resource fields
-                r.href = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_HREF, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
-                r.ctime = new Date(this.responseXML.evaluate(Carcass.XPATH_RESOURCE_CTIME, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
-                r.mtime = new Date(this.responseXML.evaluate(Carcass.XPATH_RESOURCE_MTIME, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
-                r.etag = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_ETAG, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue.replace(/(^")|("$)/g, '');
-                
-                // the mime type node could not exist if the resource mime type is unknown
-                r.mimeType = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_MIME_TYPE, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
-                r.mimeType = r.mimeType === '' ? null : r.mimeType;
-                
-                // only simple resources have the size field
-                if (!(r instanceof Carcass.Collection)) {
-                    
-                    r.size = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_SIZE, tmp, nsResolver, XPathResult.NUMBER_TYPE, null).numberValue;
+                // create the namespace resolver from the XML document
+                nsResolver = this.responseXML.createNSResolver(this.responseXML.documentElement);
+
+                // get the list of resources
+                nodes = this.responseXML.evaluate(Carcass.XPATH_RESOURCES, this.responseXML, nsResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
+                // create a resource object from each XML resource element
+                resources = [];
+                for (i = 0; i < nodes.snapshotLength; i += 1 ) {
+
+                    // read the XML element
+                    tmp = nodes.snapshotItem(i);
+
+                    // create the resource object
+                    r = this.responseXML.evaluate(Carcass.XPATH_IS_COLLECTION, tmp, nsResolver, XPathResult.BOOLEAN_TYPE, null).booleanValue ? new Carcass.Collection() : new Carcass.Resource();
+
+                    // set the resource fields
+                    r.href = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_HREF, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
+                    r.ctime = new Date(this.responseXML.evaluate(Carcass.XPATH_RESOURCE_CTIME, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
+                    r.mtime = new Date(this.responseXML.evaluate(Carcass.XPATH_RESOURCE_MTIME, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
+                    r.etag = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_ETAG, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue.replace(/(^")|("$)/g, '');
+
+                    // the mime type node could not exist if the resource mime type is unknown
+                    r.mimeType = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_MIME_TYPE, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
+                    r.mimeType = r.mimeType === '' ? null : r.mimeType;
+
+                    // only simple resources have the size field
+                    if (!(r instanceof Carcass.Collection)) {
+
+                        r.size = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_SIZE, tmp, nsResolver, XPathResult.NUMBER_TYPE, null).numberValue;
+                    }
+
+                    resources.push(r);
                 }
-                
-                resources.push(r);
-            }
-            
-            // find the root
-            indexedResources = [];
-            unprocessedResources = [];
-            resources.forEach(function(resource) {
-                
-                if ((typeof root === 'undefined')) {
-                    
-                    root = resource;
-                }
-                else {
-                    if (resource.href.replace(/\/$/, '').split('/').length < root.href.replace(/\/$/, '').split('/').length) {
-                        
+
+                // find the root
+                indexedResources = [];
+                unprocessedResources = [];
+                resources.forEach(function(resource) {
+
+                    if ((typeof root === 'undefined')) {
+
                         root = resource;
                     }
-                }
-                
-                indexedResources[resource.href] = resource;
-                unprocessedResources[resource.href] = resource;
-            });
-            
-            // remove the root from the list of unprocessed resources
-            delete(unprocessedResources[root.href]);
-            
-            // if there are resources to process
-            while (Object.keys(unprocessedResources).length > 0) {
-                
-                for (r in unprocessedResources) {
-                    
-                    if (unprocessedResources.hasOwnProperty(r)) {
-                    
-                        // determine the path of the parent resource
-                        tmp = unprocessedResources[r].href.replace(/\/$/, '').split('/');
-                        tmp.pop();
+                    else {
+                        if (resource.href.replace(/\/$/, '').split('/').length < root.href.replace(/\/$/, '').split('/').length) {
 
-                        // link this resource with its parent
-                        unprocessedResources[r].parent = indexedResources[tmp.join('/') + '/'];
-                        unprocessedResources[r].parent.children.push(unprocessedResources[r]);
+                            root = resource;
+                        }
+                    }
 
-                        // remove this resource from the list
-                        delete(unprocessedResources[r]);
+                    indexedResources[resource.href] = resource;
+                    unprocessedResources[resource.href] = resource;
+                });
+
+                // remove the root from the list of unprocessed resources
+                delete(unprocessedResources[root.href]);
+
+                // if there are resources to process
+                while (Object.keys(unprocessedResources).length > 0) {
+
+                    for (r in unprocessedResources) {
+
+                        if (unprocessedResources.hasOwnProperty(r)) {
+
+                            // determine the path of the parent resource
+                            tmp = unprocessedResources[r].href.replace(/\/$/, '').split('/');
+                            tmp.pop();
+
+                            // link this resource with its parent
+                            unprocessedResources[r].parent = indexedResources[tmp.join('/') + '/'];
+                            unprocessedResources[r].parent.children.push(unprocessedResources[r]);
+
+                            // remove this resource from the list
+                            delete(unprocessedResources[r]);
+                        }
                     }
                 }
-            }
-            
-            // if a valid handler has been given
-            if (typeof handler !== 'undefined') {
 
-                if (typeof handler !== 'function') {
-                    
-                    throw new TypeError("Invalid handler for method 'PROPFIND'");
+                // if a valid handler has been given
+                if (typeof handler !== 'undefined') {
+
+                    if (typeof handler !== 'function') {
+
+                        throw new TypeError("Invalid handler for method 'PROPFIND'");
+                    }
+
+                    // execute the handler, passing the root and the resources returned by the server
+                    handler.call(context ? context : this, true, this.statusText, root, resources);
+                }
+            }
+            // on error
+            else {
+
+                // if a valid handler has been given
+                if (typeof handler !== 'undefined') {
+
+                    if (typeof handler !== 'function') {
+
+                        throw new TypeError("Invalid handler for method 'PROPFIND'");
+                    }
+
+                    // execute the handler, passing the root and the resources returned by the server
+                    handler.call(context ? context : this, false, this.statusText, null, null);
                 }
                 
-                // execute the handler, passing the rrot and the resources returned by the server
-                handler.call(context ? context : this, root, resources);
             }
         }
     };
