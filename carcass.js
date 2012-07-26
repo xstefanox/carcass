@@ -247,31 +247,31 @@ Carcass.DEFAULT_TIMEOUT = 1000;
  * @description Mustache template for the generation of a PROPFIND request body.
  */
 Carcass.PROPFIND_BODY_TPL = '<?xml version="1.0" encoding="{{encoding}}" ?>' +
-                           '<propfind xmlns="{{webdavSchema}}">' +
-                           '{{#propname}}<propname/>{{/propname}}' +
-                           '{{^propname}}' +
-                                '{{#haveProperties}}' +
-                                    '<prop{{#namespaces}} xmlns:{{ns}}="{{schema}}"{{/namespaces}}>' +
-                                        '{{#properties}}<{{#ns}}{{ns}}:{{/ns}}{{name}}/>{{/properties}}' +
-                                    '</prop>' +
-                                '{{/haveProperties}}' +
-                                '{{^haveProperties}}<allprop/>{{/haveProperties}}' +
-                           '{{/propname}}' +
-                           '</propfind>';
+                            '<propfind xmlns="{{webdavSchema}}">' +
+                            '{{#propname}}<propname/>{{/propname}}' +
+                            '{{^propname}}' +
+                                 '{{#haveProperties}}' +
+                                     '<prop{{#namespaces}} xmlns:{{ns}}="{{schema}}"{{/namespaces}}>' +
+                                         '{{#properties}}<{{#ns}}{{ns}}:{{/ns}}{{name}}/>{{/properties}}' +
+                                     '</prop>' +
+                                 '{{/haveProperties}}' +
+                                 '{{^haveProperties}}<allprop/>{{/haveProperties}}' +
+                            '{{/propname}}' +
+                            '</propfind>';
 
 /**
  * @static
  * @description Mustache template for the generation of a PROPPATCH request body.
  */
 Carcass.PROPPATCH_BODY_TPL = '<?xml version="1.0" encoding="{{encoding}}" ?>' +
-                            '<propertyupdate xmlns="{{webdavSchema}}"{{#namespaces}} xmlns:{{ns}}="{{schema}}"{{/namespaces}}>' +
-                            '<set>' +
-                                '{{#setProperties}}<prop>{{>value}}</prop>{{/setProperties}}' +
-                            '</set>' +
-                            '<remove>' +
-                                '{{#removeProperties}}<prop><{{#ns}}{{ns}}:{{/ns}}{{name}}/></prop>{{/removeProperties}}' +
-                            '</remove>' +
-                            '</propertyupdate>';
+                             '<propertyupdate xmlns="{{webdavSchema}}"{{#namespaces}} xmlns:{{ns}}="{{schema}}"{{/namespaces}}>' +
+                             '<set>' +
+                                 '{{#setProperties}}<prop>{{>value}}</prop>{{/setProperties}}' +
+                             '</set>' +
+                             '<remove>' +
+                                 '{{#removeProperties}}<prop><{{#ns}}{{ns}}:{{/ns}}{{name}}/></prop>{{/removeProperties}}' +
+                             '</remove>' +
+                             '</propertyupdate>';
 
 /**
  * @static
@@ -284,11 +284,11 @@ Carcass.PROPPATCH_VALUE_TPL = '<{{#ns}}{{ns}}:{{/ns}}{{name}}>{{value}}{{#fields
  * @description Mustache template for the generation of a LOCK request body.
  */
 Carcass.LOCK_BODY_TPL = '<?xml version="1.0" encoding="{{encoding}}" ?>' +
-                       '<lockinfo xmlns="{{webdavSchema}}">' +
-                            '<lockscope><{{scope}}/></lockscope>' +
-                            '<locktype><{{type}}/></locktype>' +
-                            '<owner><href>{{owner}}</href></owner>' +
-                       '</lockinfo>';
+                        '<lockinfo xmlns="{{webdavSchema}}">' +
+                             '<lockscope><{{scope}}/></lockscope>' +
+                             '<locktype><{{type}}/></locktype>' +
+                             '<owner><href>{{owner}}</href></owner>' +
+                        '</lockinfo>';
 
 Carcass.XPATH_RESOURCES = "/*[local-name() = 'multistatus' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'response' and namespace-uri() = namespace-uri(/*)]";
 Carcass.XPATH_IS_COLLECTION = "boolean(./*[local-name() = 'propstat' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'resourcetype' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'collection' and namespace-uri() = namespace-uri(/*)])";
@@ -446,16 +446,16 @@ Carcass.Client = function(/**String*/ host, /**Number*/ port, /**String*/ protoc
     this.host = host || location.hostname;
     this.port = port || location.port || Carcass.DEFAULT_PORT;
     this.protocol = protocol || location.protocol.replace(':', '') || Carcass.DEFAULT_PROTOCOL;
-    this.timeout = Carcass.DEFAULT_TIMEOUT;
     
+    // check if the port is actually a number
     if (!/\d/.test(this.port)) {
 
         throw new TypeError("Invalid port number '" + this.port + "'");
     }
+    
+    this.xhr = new XMLHttpRequest();
+    this.xhr.timeout = Carcass.DEFAULT_TIMEOUT;
 };
-Carcass.Client.prototype = new XMLHttpRequest();
-Carcass.Client.prototype.constructor = XMLHttpRequest;
-Carcass.Client.parent = XMLHttpRequest.prototype;
 
 Carcass.Client.prototype.toString = function() {
     return "[object Carcass.Client]";
@@ -470,8 +470,11 @@ Carcass.Client.prototype.toString = function() {
  */
 Carcass.Client.prototype.open = function(/**String*/ method, /**String*/ path) {
     
+    // make the path absolute
+    path = this.protocol + '://' + this.host + ':' + this.port + (!/^\/.*/.test(path) ? '/' : '') + path;
+    
     // this request is always asynchronous (the last argument is always true)
-    return Carcass.Client.parent.open.call(this, method, this.protocol + '://' + this.host + ':' + this.port + (!/^\/.*/.test(path) ? '/' : '') + path, true);
+    return this.xhr.open(method, path, true);
 };
 
 /**
@@ -484,7 +487,7 @@ Carcass.Client.prototype.setLock = function(/**String*/ lockToken) {
     
     // if a lock token has been given
     if (lockToken) {
-        this.setRequestHeader('If', '<' + lockToken + '>');
+        this.xhr.setRequestHeader('If', '<' + lockToken + '>');
     }
 };
 
@@ -501,7 +504,7 @@ Carcass.Client.prototype.setCharset = function(/**String*/ charset) {
     // try the standard property first, then try the MSIE non-standard property and eventually fall back to UTF-8
     charset = charset || document.characterSet || document.charset || Carcass.DEFAULT_CHARSET;
     
-    this.setRequestHeader("Content-type", "text/xml; charset=" + charset);
+    this.xhr.setRequestHeader("Content-type", "text/xml; charset=" + charset);
     
     return charset;
 };
@@ -516,9 +519,9 @@ Carcass.Client.prototype.setCharset = function(/**String*/ charset) {
  */
 Carcass.Client.prototype.GET = function(/**String*/ path, /**Function*/ handler, /**Object*/ context) {
     
-    this.open('GET', path);
+    this.xhr.open('GET', path);
     
-    this.send();
+    this.xhr.send();
 };
 
 /**
@@ -534,13 +537,13 @@ Carcass.Client.prototype.GET = function(/**String*/ path, /**Function*/ handler,
  */
 Carcass.Client.prototype.PUT = function(/**String*/ path, /**String*/ content, /**String*/ charset, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
     
-    this.open('PUT', path);
+    this.xhr.open('PUT', path);
     
     this.setCharset(charset);
     
     this.setLock(lockToken);
     
-    this.send(content);
+    this.xhr.send(content);
 };
 
 /**
@@ -554,7 +557,7 @@ Carcass.Client.prototype.PUT = function(/**String*/ path, /**String*/ content, /
  */
 Carcass.Client.prototype.DELETE = function(/**String*/ path, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
     
-    this.open('DELETE', path);
+    this.xhr.open('DELETE', path);
     
     // the Infinity depth is the default for the DELETE method and the only accepted value;
     // it is not required, so we won't send it and fall back to the default
@@ -562,7 +565,7 @@ Carcass.Client.prototype.DELETE = function(/**String*/ path, /**String*/ lockTok
     
     this.setLock(lockToken);
     
-    this.send();
+    this.xhr.send();
 };
 
 /**
@@ -576,13 +579,13 @@ Carcass.Client.prototype.DELETE = function(/**String*/ path, /**String*/ lockTok
  */
 Carcass.Client.prototype.MKCOL = function(/**String*/ path, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
     
-    this.open('MKCOL', path);
+    this.xhr.open('MKCOL', path);
     
     this.setLock(lockToken);
     
     // @TODO: MKCOL may contain a message body
     
-    this.send();
+    this.xhr.send();
 };
 
 /**
@@ -599,17 +602,17 @@ Carcass.Client.prototype.MKCOL = function(/**String*/ path, /**String*/ lockToke
  */
 Carcass.Client.prototype.COPY = function(/**String*/ source, /**String*/ destination, /**String*/ lockToken, /**Boolean*/ overwrite, /**Boolean*/ recursive, /**Function*/ handler, /**Object*/ context) {
     
-    this.open('COPY', source);
+    this.xhr.open('COPY', source);
     
-    this.setRequestHeader('Destination', destination);
+    this.xhr.setRequestHeader('Destination', destination);
     
-    this.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
+    this.xhr.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
     
-    this.setRequestHeader('Depth', recursive ? 'Infinity' : '0');
+    this.xhr.setRequestHeader('Depth', recursive ? 'Infinity' : '0');
     
     this.setLock(lockToken);
     
-    this.send();
+    this.xhr.send();
 };
 
 /**
@@ -625,15 +628,15 @@ Carcass.Client.prototype.COPY = function(/**String*/ source, /**String*/ destina
  */
 Carcass.Client.prototype.MOVE = function(/**String*/ source, /**String*/ destination, /**String*/ lockToken, /**Boolean*/ overwrite, /**Function*/ handler, /**Object*/ context) {
     
-    this.open('MOVE', source);
+    this.xhr.open('MOVE', source);
     
-    this.setRequestHeader("Destination", destination);
+    this.xhr.setRequestHeader("Destination", destination);
     
-    this.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
+    this.xhr.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
     
     this.setLock(lockToken);
     
-    this.send();
+    this.xhr.send();
 };
 
 /**
@@ -652,7 +655,7 @@ Carcass.Client.prototype.MOVE = function(/**String*/ source, /**String*/ destina
  */
 Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth, /**Array**/ properties, /**Function*/ handler, /**Object*/ context) {
 
-    this.open('PROPFIND', path);
+    this.xhr.open('PROPFIND', path);
 
     // if a depth has been given
     if (typeof depth !== 'undefined' && depth !== null) {
@@ -663,10 +666,10 @@ Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth
             throw new Carcass.InvalidDepth(depth);
         }
         
-        this.setRequestHeader('Depth', depth);
+        this.xhr.setRequestHeader('Depth', depth);
     }
 
-    this.onreadystatechange = function() {
+    this.xhr.onreadystatechange = function() {
         
         var nsResolver,             // the namespace resolver function
             nodes,                  // the list of resource nodes in the response
@@ -680,7 +683,7 @@ Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth
         
         if (this.readyState === XMLHttpRequest.DONE) {
             
-            // on successful request
+            // on successful request (HTTP Multi-Status)
             if (this.status === 207) {
             
                 // create the namespace resolver from the XML document
@@ -793,7 +796,7 @@ Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth
         }
     };
     
-    this.send(Mustache.render(Carcass.PROPFIND_BODY_TPL, {
+    this.xhr.send(Mustache.render(Carcass.PROPFIND_BODY_TPL, {
         encoding: this.setCharset(),
         webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
         haveProperties: properties instanceof Array && properties.length,
@@ -818,11 +821,11 @@ Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth
  */
 Carcass.Client.prototype.PROPPATCH = function(/**String*/ path, /**Object*/ setProperties, /**Object*/ deleteProperties, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
 
-    this.open('PROPPATCH', path);
+    this.xhr.open('PROPPATCH', path);
     
     this.setLock(lockToken);
 
-    this.send(Mustache.render(Carcass.PROPPATCH_BODY_TPL, {
+    this.xhr.send(Mustache.render(Carcass.PROPPATCH_BODY_TPL, {
             encoding: this.setCharset(),
             webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
             setProperties: setProperties,
@@ -861,7 +864,7 @@ Carcass.Client.prototype.LOCK = function(/**String*/ path, /**String*/ owner, /*
         throw new Carcass.InvalidLockType(type);
     }
     
-    this.open('LOCK', path);
+    this.xhr.open('LOCK', path);
     
     // if a depth has been given
     if (typeof depth !== 'undefined' && depth !== null) {
@@ -872,7 +875,7 @@ Carcass.Client.prototype.LOCK = function(/**String*/ path, /**String*/ owner, /*
             throw new Carcass.InvalidDepth(depth);
         }
         
-        this.setRequestHeader('Depth', depth);
+        this.xhr.setRequestHeader('Depth', depth);
     }
     
     if (lockToken) {
@@ -891,11 +894,11 @@ Carcass.Client.prototype.LOCK = function(/**String*/ path, /**String*/ owner, /*
             timeout = 'Second-' + timeout;
         }
         
-        this.setRequestHeader('Timeout', timeout);
+        this.xhr.setRequestHeader('Timeout', timeout);
         
     }
     
-    this.send(Mustache.render(Carcass.LOCK_BODY_TPL, {
+    this.xhr.send(Mustache.render(Carcass.LOCK_BODY_TPL, {
             encoding: this.setCharset(),
             webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
             scope: scope,
@@ -916,9 +919,10 @@ Carcass.Client.prototype.LOCK = function(/**String*/ path, /**String*/ owner, /*
  */
 Carcass.Client.prototype.UNLOCK = function(/**String*/ path, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
 
-    this.open('UNLOCK', path);
+    this.xhr.open('UNLOCK', path);
     
     this.setLock(lockToken);
     
-    this.send();
+    this.xhr.send();
 };
+
