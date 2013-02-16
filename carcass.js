@@ -1,928 +1,634 @@
-/*jslint browser: true, white: true, sloppy: true */
-/*global Carcass: true, Mustache: true, XPathResult: true */
-
-//'use strict';
-
-/**
- * @namespace The Carcass.js library namespace.
- * 
- * Dependencies:
- *  Mustache
- * 
- * Required ES5 features:
- *  Object.keys
- *  Array.forEach
- */
-Carcass = {};
-
-////////////////////////////////////////////////////////////////////////////////
-// EXCEPTIONS
-////////////////////////////////////////////////////////////////////////////////
-
-/**
- * @class Exception thrown when the Mustache library is not loaded..
- * @extends Error
- */
-Carcass.MustacheNotFound = function() {
-    this.name = 'Carcass.MustacheNotFound';
-    this.message = 'Mustache templating library not loaded';
-};
-Carcass.MustacheNotFound.prototype = new Error();
-Carcass.MustacheNotFound.prototype.constructor = Carcass.MustacheNotFound;
-
-/**
- * @class Exception thrown when the browser does not support asynchronous requests..
- * @extends Error
- */
-Carcass.UnsupportedBrowser = function() {
-    this.name = 'Carcass.UnsupportedBrowser';
-    this.message = 'Your browser lacks the features needed to use Carcass.js';
-};
-Carcass.UnsupportedBrowser.prototype = new Error();
-Carcass.UnsupportedBrowser.prototype.constructor = Carcass.UnsupportedBrowser;
-
-/**
- * @class Exception thrown when the value for the Depth header is not valid.
- * @extends Error
- * 
- * @param depth The given depth.
- */
-Carcass.InvalidDepth = function(/**Mixed*/ depth) {
-    this.name = 'Carcass.InvalidDepth';
-    this.message = depth;
-};
-Carcass.InvalidDepth.prototype = new Error();
-Carcass.InvalidDepth.prototype.constructor = Carcass.InvalidDepth;
-
-/**
- * @class Exception thrown when the value for the scope element is not valid.
- * @extends Error
- * 
- * @param scope The given scope.
- */
-Carcass.InvalidScope = function(/**String*/ scope) {
-    this.name = 'Carcass.InvalidScope';
-    this.message = scope;
-};
-Carcass.InvalidScope.prototype = new Error();
-Carcass.InvalidScope.prototype.constructor = Carcass.InvalidScope;
-
-/**
- * @class Exception thrown when the value for the lock type is not valid.
- * @extends Error
- * 
- * @param type The given lock type.
- */
-Carcass.InvalidLockType = function(/**String*/ type) {
-    this.name = 'Carcass.InvalidLockType';
-    this.message = type;
-};
-Carcass.InvalidLockType.prototype = new Error();
-Carcass.InvalidLockType.prototype.constructor = Carcass.InvalidLockType;
-
-/**
- * @class Exception thrown when the response status is not valid for the request method.
- * @extends Error
- * 
- * @param status The response status.
- * @param method The HTTP method of the request.
- */
-Carcass.UnexpectedResponseStatus = function(/**Number*/ status, /**String*/ method) {
-    this.name = 'Carcass.UnexpectedResponseStatus';
-    this.message = status + ' ' + Carcass.HTTP_STATUS_CODES[status] + ", method '" + method + "'";
-};
-Carcass.UnexpectedResponseStatus.prototype = new Error();
-Carcass.UnexpectedResponseStatus.prototype.constructor = Carcass.UnexpectedResponseStatus;
-
-////////////////////////////////////////////////////////////////////////////////
-// CONSTANTS
-////////////////////////////////////////////////////////////////////////////////
-
-/**
- * @static
- * @description Library name.
- */
-Carcass.NAME = 'Carcass.js';
-
-/**
- * @static
- * @description Library version.
- */
-Carcass.VERSION = '0.1-alpha';
-
-/**
- * @static
- * @description HTTP status codes reference
- * @see <a href='http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10'>HTTP/1.1 Status code definition</a>
- * 
- * The listed status codes are from HTTP/1.1 specification, except where other RFCs or extensions are specified.
- */
-Carcass.HTTP_STATUS_CODES = {
-    100: 'Continue',
-    101: 'Switching Protocols',
-    102: 'Processing',                            // RFC 4918
-    200: 'OK',
-    201: 'Created',
-    202: 'Accepted',
-    203: 'None-Authoritive Information',
-    204: 'No Content',
-    205: 'Reset Content',
-    206: 'Partial Content',
-    207: 'Multi-Status',                          // RFC 4918
-    208: 'Already Reported',                      // RFC 5842
-    226: 'IM Used',                               // RFC 3229
-    300: 'Multiple Choices',
-    301: 'Moved Permanently',
-    302: 'Found',
-    303: 'See Other',
-    304: 'Not Modified',
-    305: 'Use Proxy',
-    306: 'Switch Proxy',
-    307: 'Redirect',
-//  308: 'Permanent Redirect',                    // http://tools.ietf.org/html/draft-reschke-http-status-308-07
-    400: 'Bad Request',
-    401: 'Unauthorized',
-    402: 'Payment Required',
-    403: 'Forbidden',
-    404: 'Not Found',
-    405: 'Method Not Allowed',
-    406: 'Not Acceptable',
-    407: 'Proxy Authentication Required',
-    408: 'Request Time-out',
-    409: 'Conflict',
-    410: 'Gone',
-    411: 'Length Required',
-    412: 'Precondition Failed',
-    413: 'Request Entity Too Large',
-    414: 'Request-URI Too Large',
-    415: 'Unsupported Media Type',
-    416: 'Requested range not satisfiable',
-    417: 'Expectation Failed',
-    418: "I'm a teapot",                          // RFC 2324
-//  420: 'Enhance Your Calm',                     // twitter.com extension
-    422: 'Unprocessable Entity',                  // RFC 4918
-    423: 'Locked',                                // RFC 4918
-    424: 'Failed Dependency',                     // RFC 4918
-    425: 'Unordered Collection',                  // RFC 3648
-    426: 'Upgrade Required',                      // RFC 2817
-//  428: 'Precondition Required',                 // http://tools.ietf.org/html/draft-nottingham-http-new-status-04
-//  429: 'Too many requests',                     // http://tools.ietf.org/html/draft-nottingham-http-new-status-04
-//  431: 'Request Header Fields Too Large',       // http://tools.ietf.org/html/draft-nottingham-http-new-status-04
-//  444: 'No Response',                           // Nginx extension
-//  449: 'Retry With',                            // Microsoft IIS extension
-//  450: 'Blocked by Windows Parental Controls',  // Microsoft IIS extension
-//  499: 'Client Closed Request',                 // Nginx extension
-    500: 'Internal Server Error',
-    501: 'Not Implemented',
-    502: 'Bad Gateway',
-    503: 'Service Unavailable',
-    504: 'Gateway Time-out',
-    505: 'HTTP Version not supported',
-    506: 'Variant Also Negotiates',               // RFC 2295
-    507: 'Insufficient Storage',                  // RFC 4918
-    508: 'Loop Detected',                         // RFC 5842
-//  509: 'Bandwidth Limit Exceeded',              // Apache HTTPD extension
-    510: 'Not Extended'                           // RFC 2774
-//  511: 'Network Authentication Required'        // http://tools.ietf.org/html/draft-nottingham-http-new-status-04
-};
-
-//Carcass.WEBDAV_STATUS_CODES = {
-//    PROPFIND: {
-////        403: 'Infinity-depth requests unsupported by the server',
-//        200: 'A property exists and/or its value is successfully returned',
-//        401: 'The property cannot be viewed without appropriate authorization',
-//        403: 'The property cannot be viewed regardless of authentication',
-//        404: 'The property does not exist'
-//    },
-//    PROPPATCH: {
-//        200: 'The property set or change succeeded'
-//        
-//    }
-//};
-
-/**
- * @static
- * @description Default connection port.
- */
-Carcass.DEFAULT_PORT = 80;
-
-/**
- * @static
- * @description Default connection protocol.
- */
-Carcass.DEFAULT_PROTOCOL = 'http';
-
-/**
- * @static
- * @description Default character encoding of the request body.
- */
-Carcass.DEFAULT_CHARSET = 'UTF-8';
-
-/**
- * @static
- * @description The Carcass XML schema.
- */
-Carcass.WEBDAV_NAMESPACE_URI = 'DAV:';
-
-/**
- * @static
- * @description The namespace associated to the Carcass XML schema.
- */
-Carcass.WEBDAV_NAMESPACE = 'D';
-
-/**
- * @static
- * @description Max value for the Timeout header.
- */
-Carcass.HEADER_TIMEOUT_MAX = 4100000000;
-
-/**
- * @static
- * @description Default timeout of asynchronous requests.
- */
-Carcass.DEFAULT_TIMEOUT = 1000;
-
-/**
- * @static
- * @description Mustache template for the generation of a PROPFIND request body.
- */
-Carcass.PROPFIND_BODY_TPL = '<?xml version="1.0" encoding="{{encoding}}" ?>' +
-                            '<propfind xmlns="{{webdavSchema}}">' +
-                            '{{#propname}}<propname/>{{/propname}}' +
-                            '{{^propname}}' +
-                                 '{{#haveProperties}}' +
-                                     '<prop{{#namespaces}} xmlns:{{ns}}="{{schema}}"{{/namespaces}}>' +
-                                         '{{#properties}}<{{#ns}}{{ns}}:{{/ns}}{{name}}/>{{/properties}}' +
-                                     '</prop>' +
-                                 '{{/haveProperties}}' +
-                                 '{{^haveProperties}}<allprop/>{{/haveProperties}}' +
-                            '{{/propname}}' +
-                            '</propfind>';
-
-/**
- * @static
- * @description Mustache template for the generation of a PROPPATCH request body.
- */
-Carcass.PROPPATCH_BODY_TPL = '<?xml version="1.0" encoding="{{encoding}}" ?>' +
-                             '<propertyupdate xmlns="{{webdavSchema}}"{{#namespaces}} xmlns:{{ns}}="{{schema}}"{{/namespaces}}>' +
-                             '<set>' +
-                                 '{{#setProperties}}<prop>{{>value}}</prop>{{/setProperties}}' +
-                             '</set>' +
-                             '<remove>' +
-                                 '{{#removeProperties}}<prop><{{#ns}}{{ns}}:{{/ns}}{{name}}/></prop>{{/removeProperties}}' +
-                             '</remove>' +
-                             '</propertyupdate>';
-
-/**
- * @static
- * @description Mustache template for the generation of the value entry of a PROPATCH request body.
- */
-Carcass.PROPPATCH_VALUE_TPL = '<{{#ns}}{{ns}}:{{/ns}}{{name}}>{{value}}{{#fields}}{{>value}}{{/fields}}</{{name}}>';
-
-/**
- * @static
- * @description Mustache template for the generation of a LOCK request body.
- */
-Carcass.LOCK_BODY_TPL = '<?xml version="1.0" encoding="{{encoding}}" ?>' +
-                        '<lockinfo xmlns="{{webdavSchema}}">' +
-                             '<lockscope><{{scope}}/></lockscope>' +
-                             '<locktype><{{type}}/></locktype>' +
-                             '<owner><href>{{owner}}</href></owner>' +
-                        '</lockinfo>';
-
-Carcass.XPATH_RESOURCES = "/*[local-name() = 'multistatus' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'response' and namespace-uri() = namespace-uri(/*)]";
-Carcass.XPATH_IS_COLLECTION = "boolean(./*[local-name() = 'propstat' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'resourcetype' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'collection' and namespace-uri() = namespace-uri(/*)])";
-Carcass.XPATH_RESOURCE_HREF = "string(./*[local-name() = 'href' and namespace-uri() = namespace-uri(/*)])";
-Carcass.XPATH_RESOURCE_CTIME = "string(./*[local-name() = 'propstat' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'creationdate' and namespace-uri() = namespace-uri(/*)])";
-Carcass.XPATH_RESOURCE_MTIME = "string(./*[local-name() = 'propstat' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'getlastmodified' and namespace-uri() = namespace-uri(/*)])";
-Carcass.XPATH_RESOURCE_ETAG = "string(./*[local-name() = 'propstat' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]/*[local-name() = 'getetag' and namespace-uri() = namespace-uri(/*)])";
-Carcass.XPATH_RESOURCE_MIME_TYPE = "string(.//*[local-name() = 'getcontenttype' and namespace-uri() = namespace-uri(/*)])";
-Carcass.XPATH_RESOURCE_SIZE = "number(.//*[local-name() = 'getcontentlength' and namespace-uri() = namespace-uri(/*)])";
-
-////////////////////////////////////////////////////////////////////////////////
-// CLASSES
-////////////////////////////////////////////////////////////////////////////////
-
-Carcass.Resource = function() {
-    this.href = null;
-    this.ctime = null;
-    this.mtime = null;
-    this.mimeType = null;
-    this.parent = null;
-    this.size = null;
-    this.etag = null;
-};
-
-Carcass.Resource.prototype.toString = function() {
-    return "[object Carcass.Resource]";
-};
-
-Carcass.Collection = function() {
-    Carcass.Collection.parent.constructor.call(this);
-    this.children = [];
-};
-Carcass.Collection.prototype = new Carcass.Resource();
-Carcass.Collection.prototype.constructor = Carcass.Collection;
-Carcass.Collection.parent = Carcass.Resource.prototype;
-
-Carcass.Collection.prototype.toString = function() {
-    return "[object Carcass.Collection]";
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// HELPERS
-////////////////////////////////////////////////////////////////////////////////
-
-/**
- * @namespace Namespace for utility functions, defined for internal use only.
- */
-Carcass.utils = {};
-
-/**
- * @function
- * @description Read the properties data structure and return the list of namespaces.
- * 
- * @param properties The list of properties to analyze.
- * @returns The list of namespaces and schemas found.
- */
-Carcass.utils.readNamespaces = function(/**Object*/ properties) {
-    
-    var f,                  // recursive function used internally
-        namespaces = [],    // the result value
-        schemas = [],       // the list of schemas
-        name;               // temporary variable used to loop on object properties
-    
-    // create a recursive function that walks through the given properties
-    f = function(properties, schemas) {
-        
-        var i,      // the loop counter
-            ns,     // the namespace counter
-            name;   // the schema loop variable
-
-        // if item is an object, ensure it is contained into an array, to ease our work
-        if (!(properties instanceof Array)) {
-            properties = [ properties ];
-        }
-
-        // create a list of schemas and namespaces that will be used in the generated XML;
-        // this list is indexed by schema url
-        for (i = 0; i < properties.length; i += 1) {
-
-            // if the 'name' property is empty or undefined
-            if (!properties[i].name) {
-
-                // ignore this property
-                delete(properties[i]);
-            }
-            else {
-
-                // if the element schema is defined
-                if (properties[i].schema) {
-
-                    // if the schema is not present in the schema list
-                    if (!schemas[properties[i].schema]) {
-
-                        // count the schemas
-                        ns = 0;
-                        for (name in schemas) {
-                            if (schemas.hasOwnProperty(name)) {
-                                ns += 1;
-                            }
-                        }
-
-                        // add the schema
-                        schemas[properties[i].schema] = {ns: 'ns' + ns, schema: properties[i].schema};
-                    }
-
-                    // add the calculated xml namespace to the property element
-                    properties[i].ns = schemas[properties[i].schema].ns;
-
-                    // if the element has some nested fields
-                    if (properties[i].fields) {
-
-                        // recursively read the nested fields' schemas
-                        f(properties[i].fields, schemas);
-                    }
-                }
-                // else don't set any explicit schema and fall back to the default Carcass schema
-            }
-        }
-    };
-    
-    if (properties) {
-        
-        // analyze the properties
-        f(properties, schemas);
-
-        // remove the indexes from the list and obtain a plain array, which is needed by Mustache
-        for (name in schemas) {
-            if (schemas.hasOwnProperty(name)) {
-                namespaces.push(schemas[name]);
-            }
-        }
-    }
-    
-    return namespaces;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// CLIENT
-////////////////////////////////////////////////////////////////////////////////
-
-/**
- * @class Creates a new Carcass client.
- * 
- * @param [host=location.hostname] the host name or IP address of the Carcass share.
- * @param [port=80] TCP port of the host.
- * @param [protocol='http'] protocol part of URLs.
- */
-Carcass.Client = function(/**String*/ host, /**Number*/ port, /**String*/ protocol) {
-
-    // check for prerequisites
-    if (typeof Mustache === 'undefined') {
-        throw new Carcass.MustacheNotFound();
-    }
-    
-    this.host = host || location.hostname;
-    this.port = port || location.port || Carcass.DEFAULT_PORT;
-    this.protocol = protocol || location.protocol.replace(':', '') || Carcass.DEFAULT_PROTOCOL;
-    
-    // check if the port is actually a number
-    if (!/\d/.test(this.port)) {
-
-        throw new TypeError("Invalid port number '" + this.port + "'");
-    }
-    
-    this.xhr = new XMLHttpRequest();
-    this.xhr.timeout = Carcass.DEFAULT_TIMEOUT;
-};
-
-Carcass.Client.prototype.toString = function() {
-    return "[object Carcass.Client]";
-};
-
-/**
- * @function
- * @description Open the connection.
- * 
- * @param method A valid HTTP method.
- * @param path The destination url.
- */
-Carcass.Client.prototype.open = function(/**String*/ method, /**String*/ path) {
-    
-    // make the path absolute
-    path = this.protocol + '://' + this.host + ':' + this.port + (!/^\/.*/.test(path) ? '/' : '') + path;
-    
-    // this request is always asynchronous (the last argument is always true)
-    return this.xhr.open(method, path, true);
-};
-
-/**
- * @function
- * @description Set the value of the Lock header
- * 
- * @param lockToken The lock token.
- */
-Carcass.Client.prototype.setLock = function(/**String*/ lockToken) {
-    
-    // if a lock token has been given
-    if (lockToken) {
-        this.xhr.setRequestHeader('If', '<' + lockToken + '>');
-    }
-};
-
-/**
- * @function
- * @description Set the content type of the body
- * 
- * @param charset The charset.
- * @returns The calculated charset. 
- */
-Carcass.Client.prototype.setCharset = function(/**String*/ charset) {
-    
-    // determine the document character set and send the request with the same setting;
-    // try the standard property first, then try the MSIE non-standard property and eventually fall back to UTF-8
-    charset = charset || document.characterSet || document.charset || Carcass.DEFAULT_CHARSET;
-    
-    this.xhr.setRequestHeader("Content-type", "text/xml; charset=" + charset);
-    
-    return charset;
-};
-
-/**
- * @function
- * @description Retrieve the contents of a resource.
- * 
- * @param path The path to the requested resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.GET = function(/**String*/ path, /**Function*/ handler, /**Object*/ context) {
-    
-    this.xhr.open('GET', path);
-    
-    this.xhr.send();
-};
-
-/**
- * @function
- * @description Save the contents of a resource to the server.
- * 
- * @param path The path to the requested resource.
- * @param content The new content of the resource.
- * @param [charset=document.characterSet|Carcass.DEFAULT_CHARSET] The character encoding of the request.
- * @param [lockToken] The token for the locked resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.PUT = function(/**String*/ path, /**String*/ content, /**String*/ charset, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
-    
-    this.xhr.open('PUT', path);
-    
-    this.setCharset(charset);
-    
-    this.setLock(lockToken);
-    
-    this.xhr.send(content);
-};
-
-/**
- * @function
- * @description Remove a resource. It acts recursively if the resource is a collection.
- * 
- * @param path The path to the requested resource.
- * @param [lockToken] The token for the locked resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.DELETE = function(/**String*/ path, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
-    
-    this.xhr.open('DELETE', path);
-    
-    // the Infinity depth is the default for the DELETE method and the only accepted value;
-    // it is not required, so we won't send it and fall back to the default
-    //request.setRequestHeader("Depth", "Infinity");
-    
-    this.setLock(lockToken);
-    
-    this.xhr.send();
-};
-
-/**
- * @function
- * @description Create a collection.
- * 
- * @param path The path to the requested resource.
- * @param [lockToken] The token for the locked resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.MKCOL = function(/**String*/ path, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
-    
-    this.xhr.open('MKCOL', path);
-    
-    this.setLock(lockToken);
-    
-    // @TODO: MKCOL may contain a message body
-    
-    this.xhr.send();
-};
-
-/**
- * @function
- * @description Create a copy of a resource.
- * 
- * @param source The path to the resource that will be copied.
- * @param destination The destination path of the copy.
- * @param [lockToken] The token for the locked resource.
- * @param [overwrite] Whether he destination should be overwritten if exists.
- * @param [recursive] Whether the copy of a collection should be performed recursively.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.COPY = function(/**String*/ source, /**String*/ destination, /**String*/ lockToken, /**Boolean*/ overwrite, /**Boolean*/ recursive, /**Function*/ handler, /**Object*/ context) {
-    
-    this.xhr.open('COPY', source);
-    
-    this.xhr.setRequestHeader('Destination', destination);
-    
-    this.xhr.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
-    
-    this.xhr.setRequestHeader('Depth', recursive ? 'Infinity' : '0');
-    
-    this.setLock(lockToken);
-    
-    this.xhr.send();
-};
-
-/**
- * @function
- * @description Move a resource from a location to another.
- * 
- * @param source The path to the resource that will be moved.
- * @param destination The destination path.
- * @param [lockToken] The token for the locked resource.
- * @param [overwrite] Whether he destination should be overwritten if exists.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.MOVE = function(/**String*/ source, /**String*/ destination, /**String*/ lockToken, /**Boolean*/ overwrite, /**Function*/ handler, /**Object*/ context) {
-    
-    this.xhr.open('MOVE', source);
-    
-    this.xhr.setRequestHeader("Destination", destination);
-    
-    this.xhr.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
-    
-    this.setLock(lockToken);
-    
-    this.xhr.send();
-};
-
-/**
- * @function
- * @description Read the metadata of a resource, optionally including its children.
- * 
- * @param path The path to the resource that will be queried.
- * @param [depth="Infinity"] The depth downto which the resource will be queried, if it is a collecion.
- * @param [properties] The list of properties that will be queried. The array must contain elements of the form
- *        { name: 'property name', schema: 'XML schema url' }. If an element does not contain the 'name' property,
- *        it is ignored. If an element does not contain the 'schema' property, no schema is used and the protocol
- *        will fall back to the default Carcass namespace.
- *        If no property is given, all the resource properties will be fetched.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.PROPFIND = function(/**String*/ path, /**String*/ depth, /**Array**/ properties, /**Function*/ handler, /**Object*/ context) {
-
-    this.xhr.open('PROPFIND', path);
-
-    // if a depth has been given
-    if (typeof depth !== 'undefined' && depth !== null) {
-        
-        // fail if the given value is invalid
-        if (!((typeof depth === 'string' && depth.toLowerCase() === 'infinity') || depth === 0 || depth === 1)) {
-
-            throw new Carcass.InvalidDepth(depth);
-        }
-        
-        this.xhr.setRequestHeader('Depth', depth);
-    }
-
-    this.xhr.onreadystatechange = function() {
-        
-        var nsResolver,             // the namespace resolver function
-            nodes,                  // the list of resource nodes in the response
-            i,                      // loop counter
-            r,                      // resource temporary variable
-            tmp,                    // temporary variable
-            resources,              // the list of resources received from the server
-            root,                   // the root of the tree
-            indexedResources,       // the list of resources received from the server, indexed by href
-            unprocessedResources;   // list of resources to process
-        
-        if (this.readyState === XMLHttpRequest.DONE) {
-            
-            // on successful request (HTTP Multi-Status)
-            if (this.status === 207) {
-            
-                // create the namespace resolver from the XML document
-                nsResolver = this.responseXML.createNSResolver(this.responseXML.documentElement);
-
-                // get the list of resources
-                nodes = this.responseXML.evaluate(Carcass.XPATH_RESOURCES, this.responseXML, nsResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-
-                // create a resource object from each XML resource element
-                resources = [];
-                for (i = 0; i < nodes.snapshotLength; i += 1 ) {
-
-                    // read the XML element
-                    tmp = nodes.snapshotItem(i);
-
-                    // create the resource object
-                    r = this.responseXML.evaluate(Carcass.XPATH_IS_COLLECTION, tmp, nsResolver, XPathResult.BOOLEAN_TYPE, null).booleanValue ? new Carcass.Collection() : new Carcass.Resource();
-
-                    // set the resource fields
-                    r.href = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_HREF, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
-                    r.ctime = new Date(this.responseXML.evaluate(Carcass.XPATH_RESOURCE_CTIME, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
-                    r.mtime = new Date(this.responseXML.evaluate(Carcass.XPATH_RESOURCE_MTIME, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
-                    r.etag = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_ETAG, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue.replace(/(^")|("$)/g, '');
-
-                    // the mime type node could not exist if the resource mime type is unknown
-                    r.mimeType = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_MIME_TYPE, tmp, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
-                    r.mimeType = r.mimeType === '' ? null : r.mimeType;
-
-                    // only simple resources have the size field
-                    if (!(r instanceof Carcass.Collection)) {
-
-                        r.size = this.responseXML.evaluate(Carcass.XPATH_RESOURCE_SIZE, tmp, nsResolver, XPathResult.NUMBER_TYPE, null).numberValue;
-                    }
-
-                    resources.push(r);
-                }
-
-                // find the root
-                indexedResources = [];
-                unprocessedResources = [];
-                resources.forEach(function(resource) {
-
-                    if ((typeof root === 'undefined')) {
-
-                        root = resource;
-                    }
-                    else {
-                        if (resource.href.replace(/\/$/, '').split('/').length < root.href.replace(/\/$/, '').split('/').length) {
-
-                            root = resource;
-                        }
-                    }
-
-                    indexedResources[resource.href] = resource;
-                    unprocessedResources[resource.href] = resource;
-                });
-
-                // remove the root from the list of unprocessed resources
-                delete(unprocessedResources[root.href]);
-
-                // if there are resources to process
-                while (Object.keys(unprocessedResources).length > 0) {
-
-                    for (r in unprocessedResources) {
-
-                        if (unprocessedResources.hasOwnProperty(r)) {
-
-                            // determine the path of the parent resource
-                            tmp = unprocessedResources[r].href.replace(/\/$/, '').split('/');
-                            tmp.pop();
-
-                            // link this resource with its parent
-                            unprocessedResources[r].parent = indexedResources[tmp.join('/') + '/'];
-                            unprocessedResources[r].parent.children.push(unprocessedResources[r]);
-
-                            // remove this resource from the list
-                            delete(unprocessedResources[r]);
-                        }
-                    }
-                }
-
-                // if a valid handler has been given
-                if (typeof handler !== 'undefined') {
-
-                    if (typeof handler !== 'function') {
-
-                        throw new TypeError("Invalid handler for method 'PROPFIND'");
-                    }
-
-                    // execute the handler, passing the root and the resources returned by the server
-                    handler.call(context ? context : this, true, this.statusText, root, resources);
-                }
-            }
-            // on error
-            else {
-
-                // if a valid handler has been given
-                if (typeof handler !== 'undefined') {
-
-                    if (typeof handler !== 'function') {
-
-                        throw new TypeError("Invalid handler for method 'PROPFIND'");
-                    }
-
-                    // execute the handler, passing the root and the resources returned by the server
-                    handler.call(context ? context : this, false, this.statusText, null, null);
-                }
-                
-            }
-        }
-    };
-    
-    this.xhr.send(Mustache.render(Carcass.PROPFIND_BODY_TPL, {
-        encoding: this.setCharset(),
-        webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
-        haveProperties: properties instanceof Array && properties.length,
-        properties: properties,
-        namespaces: Carcass.utils.readNamespaces(properties)
-    }));
-};
-
-/**
- * @function
- * @description Set and/or remove properties of a resource.
- * 
- * @param path The path to the resource that will be modified.
- * @param setProperties The properties that will set on the resource.
- * @param [deleteProperties] The properties that will be rmoved from the resource. The array must contain elements of the form
- *        { name: 'property name', schema: 'XML schema url' }. If an element does not contain the 'name' property,
- *        it is ignored. If an element does not contain the 'schema' property, no schema is used and the protocol
- *        will fall back to the default Carcass namespace.
- * @param [lockToken] The token for the locked resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.PROPPATCH = function(/**String*/ path, /**Object*/ setProperties, /**Object*/ deleteProperties, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
-
-    this.xhr.open('PROPPATCH', path);
-    
-    this.setLock(lockToken);
-
-    this.xhr.send(Mustache.render(Carcass.PROPPATCH_BODY_TPL, {
-            encoding: this.setCharset(),
-            webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
-            setProperties: setProperties,
-            deleteProperties: deleteProperties,
-            namespaces: Carcass.utils.readNamespaces(setProperties)
-        },
-        {value: Carcass.PROPPATCH_VALUE_TPL}
-    ));
-};
-
-/**
- * @function
- * @description Lock a resource.
- * 
- * @param path The resource to lock.
- * @param owner An URL identifying the owner of the lock.
- * @param scope The scope of the lock. Accepted values: 'exclusive', 'shared'.
- * @param type The type of the lock. The only accepted value is 'write'.
- * @param [depth="Infinity"] The depth of the lock. Accepted values: '0', 'Infinity'.
- * @param timeout The timeout in seconds of the lock.
- * @param [lockToken] The token for the locked resource. If given, refreshes an already locked resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.LOCK = function(/**String*/ path, /**String*/ owner, /**String*/ scope, /**String*/ type, /**String*/ depth, /**Number*/ timeout, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
-
-    // validate the scope value
-    if (scope !== 'exclusive' && scope !== 'shared') {
-        
-        throw new Carcass.InvalidScope(scope);
-    }
-    
-    // 'write' is the only value accepted by the protocol
-    if (type !== 'write') {
-        
-        throw new Carcass.InvalidLockType(type);
-    }
-    
-    this.xhr.open('LOCK', path);
-    
-    // if a depth has been given
-    if (typeof depth !== 'undefined' && depth !== null) {
-        
-        // fail if the given value is invalid
-        if (!((typeof depth === 'string' && depth.toLowerCase() === 'infinity') || depth === 0)) {
-
-            throw new Carcass.InvalidDepth(depth);
-        }
-        
-        this.xhr.setRequestHeader('Depth', depth);
-    }
-    
-    if (lockToken) {
-        
-        this.setLock(lockToken);
-        
+/*
+@license The MIT License
+@author Stefano Varesi
+*/
+
+
+(function() {
+  var publisher,
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  publisher = function(global, factory) {
+    if (typeof exports === 'object') {
+      return factory(exports, require('mustache'), require('xmlhttprequest').XMLHttpRequest);
+    } else if (typeof define === 'function' && (define.amd != null)) {
+      return define(['exports', 'mustache'], factory);
     } else {
-    
-        // if no timeout is given, trye to request an infinite timeout or the maximum supported timeout at least
-        if (!timeout) {
-            
-            timeout = "Infinite, Second-" + Carcass.HEADER_TIMEOUT_MAX;
-            
-        } else {
-
-            timeout = 'Second-' + timeout;
-        }
-        
-        this.xhr.setRequestHeader('Timeout', timeout);
-        
+      return factory((global.Carcass = {}), global.Mustache, global.XMLHttpRequest);
     }
-    
-    this.xhr.send(Mustache.render(Carcass.LOCK_BODY_TPL, {
-            encoding: this.setCharset(),
-            webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
-            scope: scope,
-            type: type,
-            owner: owner
+  };
+
+  publisher(this, function(Carcass, Mustache, XMLHttpRequest) {
+    Carcass.MustacheNotFound = (function(_super) {
+
+      __extends(MustacheNotFound, _super);
+
+      function MustacheNotFound() {
+        this.name = 'Carcass.MustacheNotFound';
+        this.message = 'Mustache templating library not loaded';
+      }
+
+      return MustacheNotFound;
+
+    })(Error);
+    Carcass.XHRNotSupported = (function(_super) {
+
+      __extends(XHRNotSupported, _super);
+
+      function XHRNotSupported() {
+        this.name = 'Carcass.XHRNotSupported';
+        this.message = 'Your environment lacks the XHR support';
+      }
+
+      return XHRNotSupported;
+
+    })(Error);
+    Carcass.InvalidDepth = (function(_super) {
+
+      __extends(InvalidDepth, _super);
+
+      function InvalidDepth(depth) {
+        this.name = 'Carcass.InvalidDepth';
+        this.message = depth;
+      }
+
+      return InvalidDepth;
+
+    })(RangeError);
+    Carcass.InvalidScope = (function(_super) {
+
+      __extends(InvalidScope, _super);
+
+      function InvalidScope(scope) {
+        this.name = 'Carcass.InvalidScope';
+        this.message = scope;
+      }
+
+      return InvalidScope;
+
+    })(Error);
+    Carcass.InvalidLockType = (function(_super) {
+
+      __extends(InvalidLockType, _super);
+
+      function InvalidLockType(type) {
+        this.name = 'Carcass.InvalidLockType';
+        this.message = type;
+      }
+
+      return InvalidLockType;
+
+    })(Error);
+    Carcass.UnexpectedResponseStatus = (function(_super) {
+
+      __extends(UnexpectedResponseStatus, _super);
+
+      function UnexpectedResponseStatus(status, method) {
+        this.name = 'Carcass.UnexpectedResponseStatus';
+        this.message = ("" + status + " " + Carcass.HTTP_STATUS_CODES[status] + ", ") + ("method '" + method + "'");
+      }
+
+      return UnexpectedResponseStatus;
+
+    })(Error);
+    Carcass.UnsupportedMethod = (function(_super) {
+
+      __extends(UnsupportedMethod, _super);
+
+      function UnsupportedMethod(method) {
+        this.name = 'Carcass.UnsupportedMethod';
+        this.message = "Unsupported WebDAV method: " + method;
+      }
+
+      return UnsupportedMethod;
+
+    })(Error);
+    Carcass.EmptyResponse = (function(_super) {
+
+      __extends(EmptyResponse, _super);
+
+      function EmptyResponse(method) {
+        this.name = 'Carcass.EmptyResponse';
+        this.message = ("The server returned an empty response for the " + method + " ") + "request";
+      }
+
+      return EmptyResponse;
+
+    })(Error);
+    Carcass.NAME = 'Carcass.js';
+    Carcass.VERSION = '0.1-alpha';
+    Carcass.HTTP_STATUS_CODES = {
+      100: 'Continue',
+      101: 'Switching Protocols',
+      102: 'Processing',
+      200: 'OK',
+      201: 'Created',
+      202: 'Accepted',
+      203: 'Non-Authoritative Information',
+      204: 'No Content',
+      205: 'Reset Content',
+      206: 'Partial Content',
+      207: 'Multi-Status',
+      208: 'Already Reported',
+      226: 'IM Used',
+      300: 'Multiple Choices',
+      301: 'Moved Permanently',
+      302: 'Found',
+      303: 'See Other',
+      304: 'Not Modified',
+      305: 'Use Proxy',
+      306: 'Switch Proxy',
+      307: 'Redirect',
+      308: 'Permanent Redirect',
+      400: 'Bad Request',
+      401: 'Unauthorized',
+      402: 'Payment Required',
+      403: 'Forbidden',
+      404: 'Not Found',
+      405: 'Method Not Allowed',
+      406: 'Not Acceptable',
+      407: 'Proxy Authentication Required',
+      408: 'Request Time-out',
+      409: 'Conflict',
+      410: 'Gone',
+      411: 'Length Required',
+      412: 'Precondition Failed',
+      413: 'Request Entity Too Large',
+      414: 'Request-URI Too Large',
+      415: 'Unsupported Media Type',
+      416: 'Requested range not satisfiable',
+      417: 'Expectation Failed',
+      418: "I'm a teapot",
+      420: 'Enhance Your Calm',
+      422: 'Unprocessable Entity',
+      423: 'Locked',
+      424: 'Failed Dependency',
+      425: 'Unordered Collection',
+      426: 'Upgrade Required',
+      428: 'Precondition Required',
+      429: 'Too many requests',
+      431: 'Request Header Fields Too Large',
+      444: 'No Response',
+      449: 'Retry With',
+      450: 'Blocked by Windows Parental Controls',
+      499: 'Client Closed Request',
+      500: 'Internal Server Error',
+      501: 'Not Implemented',
+      502: 'Bad Gateway',
+      503: 'Service Unavailable',
+      504: 'Gateway Time-out',
+      505: 'HTTP Version not supported',
+      506: 'Variant Also Negotiates',
+      507: 'Insufficient Storage',
+      508: 'Loop Detected',
+      509: 'Bandwidth Limit Exceeded',
+      510: 'Not Extended',
+      511: 'Network Authentication Required'
+    };
+    Carcass.WEBDAV_METHODS = ['PROPFIND', 'PROPPATCH', 'MKCOL', 'GET', 'HEAD', 'POST', 'DELETE', 'PUT', 'COPY', 'MOVE', 'LOCK', 'UNLOCK'];
+    Carcass.DEFAULT_HOST = 'localhost';
+    Carcass.DEFAULT_PORT = 80;
+    Carcass.DEFAULT_PROTOCOL = 'http';
+    Carcass.DEFAULT_CHARSET = 'UTF-8';
+    Carcass.WEBDAV_NAMESPACE_URI = 'DAV:';
+    Carcass.WEBDAV_NAMESPACE = 'D';
+    Carcass.HEADER_TIMEOUT_MAX = 4100000000;
+    Carcass.DEFAULT_TIMEOUT = 1000;
+    Carcass.LockType = {
+      WRITE: 'write'
+    };
+    Carcass.Scope = {
+      EXCLUSIVE: 'exclusive',
+      SHARED: 'shared'
+    };
+    Carcass.RequestSuccessStatus = {
+      PROPFIND: 207
+    };
+    Carcass.RequestTemplate = {};
+    Carcass.RequestTemplate.PROPFIND_BODY = "<?xml version='1.0' encoding='{{encoding}}' ?>\n<propfind xmlns='{{webdavSchema}}'>\n{{#propname}}<propname/>{{/propname}}\n{{^propname}}\n  {{#haveProperties}}\n    <prop{{#namespaces}} xmlns:{{ns}}='{{schema}}'{{/namespaces}}>\n      {{#properties}}<{{#ns}}{{ns}}:{{/ns}}{{name}}/>{{/properties}}\n    </prop>\n  {{/haveProperties}}\n  {{^haveProperties}}<allprop/>{{/haveProperties}}\n{{/propname}}\n</propfind>";
+    Carcass.RequestTemplate.PROPPATCH_BODY = "<?xml version=\"1.0\" encoding=\"{{encoding}}\" ?>\n<propertyupdate\n  xmlns=\"{{webdavSchema}}\"{{#namespaces}}\n  xmlns:{{ns}}=\"{{schema}}\"{{/namespaces}}>\n<set>\n  {{#setProperties}}<prop>{{>value}}</prop>{{/setProperties}}\n</set>\n<remove>\n  {{#removeProperties}}\n    <prop>\n      <{{#ns}}{{ns}}:{{/ns}}{{name}}/>\n    </prop>\n  {{/removeProperties}}\n</remove>\n</propertyupdate>";
+    Carcass.RequestTemplate.PROPPATCH_VALUE = "<{{#ns}}{{ns}}:{{/ns}}{{name}}>\n  {{value}}{{#fields}}{{>value}}{{/fields}}\n</{{name}}>";
+    Carcass.RequestTemplate.LOCK_BODY = "<?xml version=\"1.0\" encoding=\"{{encoding}}\" ?>\n<lockinfo xmlns=\"{{webdavSchema}}\">\n  <lockscope><{{scope}}/></lockscope>\n  <locktype><{{type}}/></locktype>\n  <owner><href>{{owner}}</href></owner>\n</lockinfo>";
+    Carcass.XPathQuery = {};
+    Carcass.XPathQuery.RESOURCES = "/*[local-name() = 'multistatus' and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'response' and namespace-uri() = namespace-uri(/*)]";
+    Carcass.XPathQuery.IS_COLLECTION = "boolean(./*[local-name() = 'propstat'  and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'resourcetype' and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'collection' and namespace-uri() = namespace-uri(/*)])";
+    Carcass.XPathQuery.RESOURCE_HREF = "string(./*[local-name() = 'href' and namespace-uri() = namespace-uri(/*)])";
+    Carcass.XPathQuery.RESOURCE_CTIME = "string(./*[local-name() = 'propstat'  and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'creationdate' and namespace-uri() = namespace-uri(/*)])";
+    Carcass.XPathQuery.RESOURCE_MTIME = "string(./*[local-name() = 'propstat'  and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'getlastmodified'  and namespace-uri() = namespace-uri(/*)])";
+    Carcass.XPathQuery.RESOURCE_ETAG = "string(./*[local-name() = 'propstat'  and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'prop' and namespace-uri() = namespace-uri(/*)]  /*[local-name() = 'getetag' and namespace-uri() = namespace-uri(/*)])";
+    Carcass.XPathQuery.RESOURCE_MIME_TYPE = "string(.//*[local-name() = 'getcontenttype'  and namespace-uri() = namespace-uri(/*)])";
+    Carcass.XPathQuery.RESOURCE_SIZE = "number(.//*[local-name() = 'getcontentlength'  and namespace-uri() = namespace-uri(/*)])";
+    Carcass.Handler = {
+      failure: function() {},
+      getCallback: function(method, handler, context) {
+        return function() {
+          var handlerArgs, handlerResult;
+          if (this.readyState === XMLHttpRequest.DONE) {
+            if (this.status === Carcass.RequestSuccessStatus[method]) {
+              handlerResult = Carcass.Handler[method].success.call(this);
+              if (handler != null) {
+                if (!handler instanceof Function) {
+                  throw new TypeError("Invalid handler");
+                }
+                handlerArgs = [true, this.statusText].concat(handlerResult);
+                return handler.apply(context != null ? context : this, handlerArgs);
+              }
+            } else {
+              handlerResult = Carcass.Handler[method].failure.call(this);
+              if (handler != null) {
+                if (!handler instanceof Function) {
+                  throw new TypeError("Invalid handler");
+                }
+                handlerArgs = [false, this.statusText].concat(handlerResult);
+                return handler.apply(context != null ? context : this, handlerArgs);
+              }
+            }
+          }
+        };
+      }
+    };
+    Carcass.Handler.PROPFIND = {
+      failure: Carcass.Handler.failure,
+      success: function() {
+        var currentResource, href, i, indexedResources, node, nodes, nsResolver, parentHref, resource, resourceDepth, resources, root, rootDepth, tmp, unprocessedResources, _i, _len;
+        if (!(this.responseXML != null)) {
+          throw new Carcass.EmptyResponse('PROPFIND');
         }
-    ));
-};
+        nsResolver = this.responseXML.createNSResolver(this.responseXML.documentElement);
+        nodes = this.responseXML.evaluate(Carcass.XPathQuery.RESOURCES, this.responseXML, nsResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        resources = [];
+        i = 0;
+        while (i < nodes.snapshotLength) {
+          node = nodes.snapshotItem(i);
+          if (this.responseXML.evaluate(Carcass.XPathQuery.IS_COLLECTION, node, nsResolver, XPathResult.BOOLEAN_TYPE, null).booleanValue) {
+            currentResource = new Carcass.Collection();
+          } else {
+            currentResource = new Carcass.Resource();
+          }
+          currentResource.href = this.responseXML.evaluate(Carcass.XPathQuery.RESOURCE_HREF, node, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
+          currentResource.ctime = new Date(this.responseXML.evaluate(Carcass.XPathQuery.RESOURCE_CTIME, node, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
+          currentResource.mtime = new Date(this.responseXML.evaluate(Carcass.XPathQuery.RESOURCE_MTIME, node, nsResolver, XPathResult.STRING_TYPE, null).stringValue);
+          currentResource.etag = this.responseXML.evaluate(Carcass.XPathQuery.RESOURCE_ETAG, node, nsResolver, XPathResult.STRING_TYPE, null).stringValue.replace(/(^")|("$)/g, '');
+          currentResource.mimeType = this.responseXML.evaluate(Carcass.XPathQuery.RESOURCE_MIME_TYPE, node, nsResolver, XPathResult.STRING_TYPE, null).stringValue;
+          if (currentResource.mimeType === '') {
+            currentResource.mimeType = null;
+          }
+          if (!currentResource instanceof Carcass.Collection) {
+            currentResource.size = this.responseXML.evaluate(Carcass.XPathQuery.RESOURCE_SIZE, node, nsResolver, XPathResult.NUMBER_TYPE, null).numberValue;
+          }
+          resources.push(currentResource);
+          i += 1;
+        }
+        indexedResources = [];
+        unprocessedResources = [];
+        root = resources[0];
+        rootDepth = root.href.replace(/\/$/, '').split('/').length;
+        for (_i = 0, _len = resources.length; _i < _len; _i++) {
+          resource = resources[_i];
+          resourceDepth = resource.href.replace(/\/$/, '').split('/').length;
+          if (resourceDepth < rootDepth) {
+            root = resource;
+            rootDepth = root.href.replace(/\/$/, '').split('/').length;
+          }
+          indexedResources[resource.href] = resource;
+          unprocessedResources[resource.href] = resource;
+        }
+        delete unprocessedResources[root.href];
+        while (Object.keys(unprocessedResources).length > 0) {
+          for (href in unprocessedResources) {
+            if (!__hasProp.call(unprocessedResources, href)) continue;
+            resource = unprocessedResources[href];
+            tmp = resource.href.replace(/\/$/, '').split('/');
+            tmp.pop();
+            parentHref = tmp.join('/') + '/';
+            resource.parent = indexedResources[parentHref];
+            resource.parent.members.push(resource);
+            delete unprocessedResources[href];
+          }
+        }
+        return [root, resources];
+      }
+    };
+    Carcass.Resource = (function() {
 
-/**
- * @function
- * @description Unlock a resource.
- * 
- * @param path The path to the resource that will be modified.
- * @param lockToken The token for the locked resource.
- * @param [handler] The function called when on request completion.
- * @param [context=this] The context in which the handler will be executed.
- */
-Carcass.Client.prototype.UNLOCK = function(/**String*/ path, /**String*/ lockToken, /**Function*/ handler, /**Object*/ context) {
+      function Resource() {}
 
-    this.xhr.open('UNLOCK', path);
-    
-    this.setLock(lockToken);
-    
-    this.xhr.send();
-};
+      Resource.prototype.href = null;
 
+      Resource.prototype.ctime = null;
+
+      Resource.prototype.mtime = null;
+
+      Resource.prototype.mimeType = null;
+
+      Resource.prototype.parent = null;
+
+      Resource.prototype.size = null;
+
+      Resource.prototype.etag = null;
+
+      Resource.prototype.toString = function() {
+        return "[object Carcass.Resource]";
+      };
+
+      return Resource;
+
+    })();
+    Carcass.Collection = (function(_super) {
+
+      __extends(Collection, _super);
+
+      function Collection() {
+        return Collection.__super__.constructor.apply(this, arguments);
+      }
+
+      Collection.prototype.members = [];
+
+      Collection.prototype.toString = function() {
+        return "[object Carcass.Collection]";
+      };
+
+      return Collection;
+
+    })(Carcass.Resource);
+    Carcass.utils = {};
+    Carcass.utils.readNamespaces = function(properties) {
+      var f, name, namespaces, schema, schemas, _i, _len;
+      namespaces = [];
+      schemas = [];
+      f = function(properties, schemas) {
+        var property, _i, _len, _results;
+        if (!(properties instanceof Array)) {
+          properties = [properties];
+        }
+        _results = [];
+        for (_i = 0, _len = properties.length; _i < _len; _i++) {
+          property = properties[_i];
+          if (!property.name) {
+            _results.push(delete properties[properties.indexOf(property)]);
+          } else {
+            if (property.schema != null) {
+              if (!(schemas[property.schema] != null)) {
+                schemas[property.schema] = {
+                  ns: 'ns' + Object.keys(schemas).length,
+                  schema: property.schema
+                };
+              }
+              property.ns = schemas[property.schema].ns;
+              if (property.fields != null) {
+                _results.push(f(property.fields, schemas));
+              } else {
+                _results.push(void 0);
+              }
+            } else {
+              _results.push(void 0);
+            }
+          }
+        }
+        return _results;
+      };
+      if (properties != null) {
+        f(properties, schemas);
+        for (schema = _i = 0, _len = schemas.length; _i < _len; schema = ++_i) {
+          name = schemas[schema];
+          namespaces.push(schema);
+        }
+      }
+      return namespaces;
+    };
+    Carcass.Client = (function() {
+
+      function Client(host, port, protocol, user, password) {
+        var s, statuses, v, _ref, _ref1, _ref2, _ref3, _ref4;
+        this.host = host;
+        this.port = port;
+        this.protocol = protocol;
+        this.user = user;
+        this.password = password;
+        if (!(Mustache != null)) {
+          throw new Carcass.MustacheNotFound();
+        }
+        if (!(XMLHttpRequest != null)) {
+          throw new Carcass.XHRNotSupported();
+        }
+        statuses = {
+          UNSENT: 0,
+          OPENED: 1,
+          HEADERS_RECEIVED: 2,
+          LOADING: 3,
+          DONE: 4
+        };
+        for (s in statuses) {
+          if (!__hasProp.call(statuses, s)) continue;
+          v = statuses[s];
+          if (!(XMLHttpRequest[s] != null)) {
+            XMLHttpRequest[s] = v;
+          }
+        }
+        if (typeof location !== "undefined" && location !== null) {
+          if ((_ref = this.host) == null) {
+            this.host = location.hostname;
+          }
+          if ((_ref1 = this.port) == null) {
+            this.port = location.port;
+          }
+          if ((_ref2 = this.protocol) == null) {
+            this.protocol = location.protocol.replace(':', '');
+          }
+        }
+        if ((_ref3 = this.host) == null) {
+          this.host = Carcass.DEFAULT_HOST;
+        }
+        this.port || (this.port = Carcass.DEFAULT_PORT);
+        if ((_ref4 = this.protocol) == null) {
+          this.protocol = Carcass.DEFAULT_PROTOCOL;
+        }
+        port = Number(this.port);
+        if (isNaN(this.port) || !this.port) {
+          throw new TypeError("Invalid port number '" + port + "'");
+        }
+        this.port = port;
+      }
+
+      Client.prototype.toString = function() {
+        return "[object Carcass.Client]";
+      };
+
+      Client.prototype.open = function(method, path) {
+        if (__indexOf.call(Carcass.WEBDAV_METHODS, method) < 0) {
+          throw new Carcass.UnsupportedMethod(method);
+        }
+        if (!/^\/.*/.test(path)) {
+          path = "/" + path;
+        }
+        path = "" + this.protocol + "://" + this.host + ":" + this.port + path;
+        this.xhr = new XMLHttpRequest();
+        this.xhr.timeout = Carcass.DEFAULT_TIMEOUT;
+        this.xhr.open(method, path, true, this.user, this.password);
+        return this.xhr;
+      };
+
+      Client.prototype.setLock = function(xhr, lockToken) {
+        if (lockToken) {
+          xhr.setRequestHeader('If', "<" + lockToken + ">");
+        }
+        return this;
+      };
+
+      Client.prototype.setCharset = function(xhr, charset) {
+        if (typeof document !== "undefined" && document !== null) {
+          if (charset == null) {
+            charset = document.characterSet;
+          }
+          if (charset == null) {
+            charset = document.charset;
+          }
+        }
+        if (charset == null) {
+          charset = Carcass.DEFAULT_CHARSET;
+        }
+        xhr.setRequestHeader("Content-type", "text/xml; charset=" + charset);
+        return charset;
+      };
+
+      Client.prototype.GET = function(path, handler, context) {
+        this.open('GET', path).send();
+        return this;
+      };
+
+      Client.prototype.PUT = function(path, content, charset, lockToken, handler, context) {
+        var xhr;
+        xhr = this.open('PUT', path);
+        this.setCharset(xhr, charset);
+        this.setLock(xhr, lockToken);
+        xhr.send(content);
+        return this;
+      };
+
+      Client.prototype.DELETE = function(path, lockToken, handler, context) {
+        var xhr;
+        xhr = this.open('DELETE', path);
+        this.setLock(xhr, lockToken);
+        xhr.send();
+        return this;
+      };
+
+      Client.prototype.MKCOL = function(path, lockToken, handler, context) {
+        var xhr;
+        xhr = this.open('MKCOL', path);
+        this.setLock(xhr, lockToken);
+        xhr.send();
+        return this;
+      };
+
+      Client.prototype.COPY = function(sourcePath, destinationPath, lockToken, overwrite, recursive, handler, context) {
+        var xhr;
+        xhr = this.open('COPY', sourcePath);
+        xhr.setRequestHeader('Destination', destinationPath);
+        xhr.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
+        xhr.setRequestHeader('Depth', recursive ? 'Infinity' : '0');
+        this.setLock(xhr, lockToken);
+        xhr.send();
+        return this;
+      };
+
+      Client.prototype.MOVE = function(sourcePath, destinationPath, lockToken, overwrite, handler, context) {
+        var xhr;
+        xhr = this.open('MOVE', sourcePath);
+        xhr.setRequestHeader("Destination", destinationPath);
+        xhr.setRequestHeader('Overwrite', overwrite ? 'T' : 'F');
+        this.setLock(xhr, lockToken);
+        xhr.send();
+        return this;
+      };
+
+      Client.prototype.PROPFIND = function(path, depth, properties, handler, context) {
+        var depthIsInfinity, xhr;
+        xhr = this.open('PROPFIND', path);
+        if (depth != null) {
+          depthIsInfinity = (depth.toLowerCase != null) && depth.toLowerCase() === 'infinity';
+          if (!(depthIsInfinity || depth === 0 || depth === 1)) {
+            throw new Carcass.InvalidDepth(depth);
+          }
+          xhr.setRequestHeader('Depth', depth);
+        }
+        xhr.onreadystatechange = Carcass.Handler.getCallback('PROPFIND', handler, context);
+        xhr.send(Mustache.render(Carcass.RequestTemplate.PROPFIND_BODY, {
+          encoding: this.setCharset(xhr),
+          webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
+          haveProperties: properties instanceof Array && properties.length,
+          properties: properties,
+          namespaces: Carcass.utils.readNamespaces(properties)
+        }));
+        return this;
+      };
+
+      Client.prototype.PROPPATCH = function(path, setProperties, deleteProperties, lockToken, handler, context) {
+        var xhr;
+        xhr = this.open('PROPPATCH', path);
+        this.setLock(xhr, lockToken);
+        xhr.send(Mustache.render(Carcass.RequestTemplate.PROPPATCH_BODY, {
+          encoding: this.setCharset(xhr),
+          webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
+          setProperties: setProperties,
+          deleteProperties: deleteProperties,
+          namespaces: Carcass.utils.readNamespaces(setProperties)
+        }, {
+          value: Carcass.RequestTemplate.PROPPATCH_VALUE
+        }));
+        return this;
+      };
+
+      Client.prototype.LOCK = function(path, owner, scope, lockType, depth, timeout, lockToken, handler, context) {
+        var depthIsInfinity, xhr;
+        if (!(Carcass.Scope[scope] != null)) {
+          throw new Carcass.InvalidScope(scope);
+        }
+        if (!Carcass.LockType[lockType]) {
+          throw new Carcass.InvalidLockType(lockType);
+        }
+        xhr = this.open('LOCK', path);
+        if (depth != null) {
+          depthIsInfinity = (depth.toLowerCase != null) && depth.toLowerCase() === 'infinity';
+          if (!(depthIsInfinity || depth === 0)) {
+            throw new Carcass.InvalidDepth(depth);
+          }
+          xhr.setRequestHeader('Depth', depth);
+        }
+        if (lockToken) {
+          this.setLock(xhr, lockToken);
+        } else {
+          if (!(timeout != null)) {
+            timeout = "Infinite, Second-" + Carcass.HEADER_TIMEOUT_MAX;
+          } else {
+            timeout = 'Second-' + timeout;
+          }
+          xhr.setRequestHeader('Timeout', timeout);
+        }
+        xhr.send(Mustache.render(Carcass.RequestTemplate.LOCK_BODY, {
+          encoding: this.setCharset(xhr),
+          webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
+          scope: scope,
+          type: lockType,
+          owner: owner
+        }));
+        return this;
+      };
+
+      Client.prototype.UNLOCK = function(path, lockToken, handler, context) {
+        var xhr;
+        xhr = this.open('UNLOCK', path);
+        this.setLock(xhr, lockToken);
+        xhr.send();
+        return this;
+      };
+
+      return Client;
+
+    })();
+    return Carcass;
+  });
+
+}).call(this);

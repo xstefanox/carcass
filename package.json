@@ -1,0 +1,29 @@
+{
+  "title": "Carcass",
+  "name": "carcass",
+  "version": "0.0.1",
+  "author": "Stefano Varesi <stefano.varesi@gmail.com>",
+  "description": "A Javascript WebDAV client",
+  "scripts": {
+    "test": "mocha --reporter spec --compilers coffee:coffee-script test.coffee"
+    },
+  "main": "carcass.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xstefanox/carcass.git"
+    },
+  "keywords": [
+    "webdav",
+    "client"
+  ],
+  "dependencies": {
+    "mustache": "0.7.x"
+  },
+  "devDependencies": {
+    "coffee-script": "1.4.x",
+    "mocha": "1.7.x",
+    "grunt-coffeelint": "*",
+    "grunt": "0.3.x"
+  },
+  "license": "MIT"
+}
