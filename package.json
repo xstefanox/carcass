@@ -17,13 +17,12 @@
     "client"
   ],
   "dependencies": {
-    "mustache": "0.7.x"
+    "mustache": "*"
   },
   "devDependencies": {
-    "coffee-script": "1.4.x",
     "mocha": "1.7.x",
-    "grunt-coffeelint": "*",
-    "grunt": "0.3.x"
+    "grunt-coffee": "*",
+    "grunt-coffeelint": "*"
   },
   "license": "MIT"
 }

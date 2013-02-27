@@ -1,16 +1,19 @@
-/*global module:false*/
+/*global module:false */
 module.exports = function(grunt) {
 
   // Project configuration.
   grunt.initConfig({
-    pkg: '<json:package.json>',
+
     meta: {
-      banner: '/* <%= pkg.title || pkg.name %> - v<%= pkg.version %> - ' +
-        '<%= grunt.template.today("yyyy-mm-dd") %>\n' +
-        '<%= pkg.homepage ? "* " + pkg.homepage + "\n" : "" %>' +
-        '* Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;' +
-        ' <%= pkg.license %> License */'
+      banner:
+        '/* <%= pkg.title || pkg.name %> - ' +
+        'v<%= pkg.version %> - ' +
+        'Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author %> - ' +
+        '<%= pkg.license %> License */'
     },
+
+    // development
+
     coffeelint: {
       app: 'src/**/*.coffee',
       test: 'test/**/*.coffee'
@@ -18,21 +21,42 @@ module.exports = function(grunt) {
     coffee: {
       app: {
         src: 'src/**/*.coffee',
-        dest: 'lib',
+        dest: 'dist',
         options: {
           bare: false
         }
       }
     },
-    qunit: {
-      files: ['test/**/*.html']
-    },
+//    concat: {
+//        dist: {
+//            src: 'dist/carcass.js',
+//            dest: 'dist/carcass.js'
+//        },
+//        options: {
+//            banner: 'config:meta.banner'
+//        }
+//    },
     min: {
       dist: {
-        src: [ '<banner:meta.banner>', '<config:coffee.app.dest>' ],
+        src: [ '<banner:meta.banner>', 'dist/**/*.js' ],
         dest: 'dist/<%= pkg.name %>.min.js'
       }
-    }
+    },
+    watch: {
+      files: '<config:coffeelint.app>',
+      tasks: 'coffee min'
+    },
+
+    // test
+
+//    qunit: {
+//      files: ['test/**/*.html']
+//    }
+
+    // distribution
+
+    pkg: '<json:package.json>'
+
   });
 
   grunt.loadNpmTasks('grunt-coffee');

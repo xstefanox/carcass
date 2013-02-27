@@ -1,7 +1,5 @@
-###
-@license The MIT License
-@author Stefano Varesi
-###
+# @license The MIT License
+# @author Stefano Varesi
 
 # @TODO handler management
 # @TODO MKCOL body
@@ -1066,7 +1064,7 @@ publisher this, (Carcass, Mustache, XMLHttpRequest) ->
       xhr.onreadystatechange = Carcass.Handler.getCallback(
         'MOVE', handler, context)
     
-      xhr.send()3403688541
+      xhr.send()
     
       @
 
