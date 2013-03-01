@@ -1,0 +1,1 @@
+../node_modules/wgxpath/wgxpath.install.js

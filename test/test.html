@@ -1,11 +1,10 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-    <meta http-equiv="Access-Control-Allow-Origin" content="*">
-    <script type='text/javascript' src='http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.7.0/mustache.min.js '></script>
-    <script type='text/javascript' src='https://wicked-good-xpath.googlecode.com/files/wgxpath.install.js'></script>
+    <!-- <meta http-equiv="Access-Control-Allow-Origin" content="*"> -->
+    <script type='text/javascript' src='mustache.js '></script>
+    <script type='text/javascript' src='wgxpath.install.js'></script>
     <script type='text/javascript' src='carcass.js'></script>
-    <script type='text/javascript' src='oldcarcass.js'></script>
     <script type='text/javascript' src='http://code.jquery.com/jquery.min.js'></script>
     <!--
     <script type='text/javascript' src='http://code.jquery.com/qunit/qunit-1.10.0.js'></script>
@@ -15,10 +14,10 @@
 $(function()
 {
   var c = new Carcass.Client('localhost', null, null, 'finder', 'faep6aid');
-  c.PROPFIND('/~xstefanox/', 1, null, function(success, statusText, root, resources)
+  /*c.PROPFIND('/~xstefanox/', 1, null, function(success, statusText, root, resources)
   {
     console.log(resources);
-  });
+  });*/
 });
 /*
 test("hello test", function()

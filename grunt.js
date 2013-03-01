@@ -21,7 +21,7 @@ module.exports = function(grunt) {
     coffee: {
       app: {
         src: 'src/**/*.coffee',
-        dest: 'dist',
+        dest: 'build',
         options: {
           bare: false
         }
@@ -38,17 +38,21 @@ module.exports = function(grunt) {
 //    },
     min: {
       dist: {
-        src: [ '<banner:meta.banner>', 'dist/**/*.js' ],
+        src: [ '<banner:meta.banner>', 'build/**/*.js' ],
         dest: 'dist/<%= pkg.name %>.min.js'
       }
     },
     watch: {
       files: '<config:coffeelint.app>',
-      tasks: 'coffee min'
+      tasks: /*coffeelint*/ 'coffee min'
     },
 
     // test
 
+    server: {
+      port: 8080,
+      base: './test'
+    },
 //    qunit: {
 //      files: ['test/**/*.html']
 //    }
@@ -62,7 +66,20 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-coffee');
   grunt.loadNpmTasks('grunt-coffeelint');
 
+  grunt.renameTask('test', 'runtest');
+
+  grunt.registerTask('test', 'server watch');
+
+  grunt.registerTask('jam', '', function() {
+    var exec = require('child_process').exec;
+    
+    exec('cat grunt.js', function(error, stdout, stderr) {
+      console.log('stdout: ' + stdout);
+      console.log('stderr: ' + stderr);
+    });
+  });
+
   // Default task.
-  grunt.registerTask('default', 'coffeelint coffee min');
+  grunt.registerTask('default', 'coffee min');
 
 };
