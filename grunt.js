@@ -1,7 +1,11 @@
+/*jslint white: true */
 /*global module:false */
+
 module.exports = function(grunt) {
 
-  // Project configuration.
+  'use strict';
+
+  // project configuration
   grunt.initConfig({
 
     meta: {
@@ -27,15 +31,6 @@ module.exports = function(grunt) {
         }
       }
     },
-//    concat: {
-//        dist: {
-//            src: 'dist/carcass.js',
-//            dest: 'dist/carcass.js'
-//        },
-//        options: {
-//            banner: 'config:meta.banner'
-//        }
-//    },
     min: {
       dist: {
         src: [ '<banner:meta.banner>', 'build/**/*.js' ],
@@ -49,13 +44,9 @@ module.exports = function(grunt) {
 
     // test
 
-    server: {
-      port: 8080,
-      base: './test'
+    qunit: {
+      files: ['test/**/*.html']
     },
-//    qunit: {
-//      files: ['test/**/*.html']
-//    }
 
     // distribution
 
@@ -66,18 +57,31 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-coffee');
   grunt.loadNpmTasks('grunt-coffeelint');
 
-  grunt.renameTask('test', 'runtest');
+  // a server task that creates a WebDAV server serving the test directory
+  grunt.registerTask('server', 'Create a WebDAV server', function() {
 
-  grunt.registerTask('test', 'server watch');
+    var jsDAV = require('jsDAV/lib/jsdav');
+    var FSLocksBackend = require('jsDAV/lib/DAV/plugins/locks/fs');
+    var temp = require('temp');
 
-  grunt.registerTask('jam', '', function() {
-    var exec = require('child_process').exec;
-    
-    exec('cat grunt.js', function(error, stdout, stderr) {
-      console.log('stdout: ' + stdout);
-      console.log('stderr: ' + stderr);
-    });
+    var serverOpts = {
+      node: ".",
+      locksBackend: new FSLocksBackend(".")
+    };
+
+    var serverPort = 8000;
+
+    grunt.log.writeln('Starting WebDAV server on port ' + serverPort);
+
+    jsDAV.createServer(serverOpts, serverPort);
+
   });
+
+  grunt.registerTask('test', 'server qunit');
+
+  // create a persistent server
+  grunt.renameTask('watch', 'runwatch');
+  grunt.registerTask('watch', 'server runwatch');
 
   // Default task.
   grunt.registerTask('default', 'coffee min');

@@ -1,1 +1,1 @@
-../node_modules/mustache/mustache.js
+mustache-0.7.2.js

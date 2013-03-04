@@ -21,6 +21,8 @@
     "wgxpath": "*"
   },
   "devDependencies": {
+    "jsDAV": "0.2.3",
+    "temp": "0.4.x",
     "mocha": "1.7.x",
     "grunt-coffee": "*",
     "grunt-coffeelint": "*"

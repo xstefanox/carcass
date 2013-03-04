@@ -1,1 +1,1 @@
-../node_modules/wgxpath/wgxpath.install.js
+wgxpath.install.0.1.11.js
