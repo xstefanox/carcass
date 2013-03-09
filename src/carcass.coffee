@@ -4,27 +4,6 @@
 # @TODO handler management
 # @TODO MKCOL body
 
-
-###############################################################################
-# UNIVERSAL MODULE DEFINITION
-###############################################################################
-
-publisher = (global, factory) ->
-  if typeof exports is 'object'
-    # CommonJS
-    factory(
-      exports,
-      require('mustache'),
-      require('xmlhttprequest').XMLHttpRequest)
-  else if typeof define is 'function' and define.amd?
-    # AMD
-    define([ 'exports', 'mustache' ], factory)
-  else
-    # Browser
-    factory((global.Carcass = {}), global.Mustache, global.XMLHttpRequest)
-
-publisher this, (Carcass, Mustache, XMLHttpRequest) ->
-
   #############################################################################
   # NAMESPACE
   #############################################################################
@@ -1262,5 +1241,3 @@ publisher this, (Carcass, Mustache, XMLHttpRequest) ->
       xhr.send()
     
       @
-  
-  return Carcass
