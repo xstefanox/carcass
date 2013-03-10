@@ -13,6 +13,7 @@ module.exports = (grunt) ->
       build: 'build'
       release: 'dist'
       test: [ 'test/data', 'test/test.js' ]
+      docs: 'docs'
     
     coffeelint:
       app: 'src/carcass.coffee'
@@ -60,6 +61,19 @@ module.exports = (grunt) ->
         options:
           urls: [ 'http://localhost:8000/test.html' ]
     
+    # documentation
+    
+    docco:
+      src: 'src/carcass.coffee'
+      options:
+        output: 'docs/src'
+
+    codo:
+      src: 'src/carcass.coffee'
+      options:
+        output: 'docs/api'
+        title: 'Carcass API Documentation'
+
     # release
 
     uglify:
@@ -81,6 +95,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-jshint')
   grunt.loadNpmTasks('grunt-contrib-qunit')
   grunt.loadNpmTasks('grunt-coffeelint')
+  grunt.loadNpmTasks('grunt-docco')
 
   grunt.registerTask('umd', 'Surrounds the code with the UMD', ->
     
@@ -137,14 +152,36 @@ module.exports = (grunt) ->
 
     jsDAV.createServer(serverOpts, serverPort)
   )
+
+  # a task used to generate the API documentation
+  grunt.registerTask('codo', 'Generate source documentation', ->
+    
+    done = this.async()
+    
+    exec = require('child_process').exec
+    config = grunt.config.get(this.name)
+    pkg = grunt.config.get('pkg')
+    cmd = "codo --name '#{pkg.title || pkg.name}' --title
+          '#{config.options.title}' --output-dir '#{config.options.output}'
+          '#{config.src}'"
+    
+    cp = exec(cmd, null, -> done())
+    
+    cp.stdout.pipe(process.stdout)
+    cp.stderr.pipe(process.stdout)
+  )
   
+  # create a persistent server for development
+  grunt.registerTask('dev', [ 'coffeelint:grunt', 'coffeelint:app',
+    'coffee:app', 'umd', 'server', 'watch' ])
+  
+  # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
     'server', 'qunit' ])
 
-  # create a persistent server
-  grunt.registerTask('dev', [ 'coffeelint:grunt', 'coffeelint:app',
-    'coffee:app', 'umd', 'server', 'watch' ])
-
+  # generate the project documentation
+  grunt.registerTask('docs', [ 'docco', 'codo' ])
+  
   # default task
   grunt.registerTask('default', [ 'coffeelint:grunt', 'coffeelint:app',
-    'coffee:app', 'umd', 'test', 'uglify' ])
+    'coffee:app', 'umd', 'test', 'uglify', 'docs' ])

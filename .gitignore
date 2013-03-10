@@ -1,4 +1,5 @@
 node_modules
 build
 dist
+docs
 test/test.js
