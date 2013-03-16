@@ -659,79 +659,6 @@ class Carcass.Collection extends Carcass.Resource
     return "[object Carcass.Collection]"
     
 # -----------------------------------------------------------------------------
-# HELPERS
-# -----------------------------------------------------------------------------
-
-# Namespace for utility functions, defined for internal use only.
-#
-# @mixin
-#
-Carcass.utils = {}
-
-# Read the properties data structure and return the list of namespaces.
-#
-# @param properties [Array] The list of properties to analyze.
-#
-# @return [Array] The list of namespaces and schemas found.
-#
-Carcass.utils.readNamespaces = (properties) ->
-    
-  namespaces = []    # the result value
-  schemas = []       # the list of schemas
-    
-  # create a recursive function that walks through the given properties
-  f = (properties, schemas) ->
-
-    # if item is an object, ensure it is contained into an array, to ease our
-    # work
-    properties = [ properties ] if properties not instanceof Array
-
-    # create a list of schemas and namespaces that will be used in the
-    # generated XML; this list is indexed by schema url
-    for property in properties
-
-      # if the 'name' property is empty or undefined
-      if not property.name
-
-        # ignore this property
-        delete properties[properties.indexOf(property)]
-
-      else
-
-        # if the element schema is defined
-        if property.schema?
-
-          # if the schema is not present in the schema list
-          if not schemas[property.schema]?
-
-            # add the schema
-            schemas[property.schema] =
-              ns: 'ns' + Object.keys(schemas).length
-              schema: property.schema
-
-          # add the calculated xml namespace to the property element
-          property.ns = schemas[property.schema].ns
-
-          # recursively read the nested fields' schemas
-          # if the element has some nested fields
-          f(property.fields, schemas) if property.fields?
-          
-        # else don't set any explicit schema and fall back to the default
-        # Carcass schema
-  
-  if properties?
-        
-    # analyze the properties
-    f(properties, schemas)
-
-    # remove the indexes from the list and obtain a plain array, which is
-    # needed by Mustache
-    for own name, schema in schemas
-      namespaces.push(schema)
-    
-  return namespaces
-    
-# -----------------------------------------------------------------------------
 # CLIENT
 # -----------------------------------------------------------------------------
 
@@ -809,13 +736,13 @@ class Carcass.Client
     path = "#{@protocol}://#{@host}:#{@port}#{path}"
       
     # create the request object
-    @xhr = new XMLHttpRequest()
-    @xhr.timeout = Carcass.DEFAULT_TIMEOUT
+    xhr = new XMLHttpRequest()
+    xhr.timeout = Carcass.DEFAULT_TIMEOUT
       
     # this request is always asynchronous (the last argument is always true)
-    @xhr.open(method, path, true, @user, @password)
+    xhr.open(method, path, true, @user, @password)
       
-    return @xhr
+    return xhr
 
   # Set the value of the Lock header
   #
@@ -850,7 +777,70 @@ class Carcass.Client
     xhr.setRequestHeader("Content-type", "text/xml; charset=#{charset}")
     
     return charset
+
+  # Read the properties data structure and return the list of namespaces.
+  #
+  # @param properties [Array] The list of properties to analyze.
+  #
+  # @return [Array] The list of namespaces and schemas found.
+  #
+  readNamespaces: (properties) ->
     
+    namespaces = []    # the result value
+    schemas = []       # the list of schemas
+    
+    # create a recursive function that walks through the given properties
+    f = (properties, schemas) ->
+
+      # if item is an object, ensure it is contained into an array, to ease our
+      # work
+      properties = [ properties ] if properties not instanceof Array
+
+      # create a list of schemas and namespaces that will be used in the
+      # generated XML; this list is indexed by schema url
+      for property in properties
+
+        # if the 'name' property is empty or undefined
+        if not property.name
+
+          # ignore this property
+          delete properties[properties.indexOf(property)]
+
+        else
+
+          # if the element schema is defined
+          if property.schema?
+
+            # if the schema is not present in the schema list
+            if not schemas[property.schema]?
+
+              # add the schema
+              schemas[property.schema] =
+                ns: 'ns' + Object.keys(schemas).length
+                schema: property.schema
+
+            # add the calculated xml namespace to the property element
+            property.ns = schemas[property.schema].ns
+
+            # recursively read the nested fields' schemas
+            # if the element has some nested fields
+            f(property.fields, schemas) if property.fields?
+          
+          # else don't set any explicit schema and fall back to the default
+          # Carcass schema
+  
+    if properties?
+        
+      # analyze the properties
+      f(properties, schemas)
+
+      # remove the indexes from the list and obtain a plain array, which is
+      # needed by Mustache
+      for own name, schema in schemas
+        namespaces.push(schema)
+    
+    return namespaces
+
   # Retrieve the contents of a resource.
   #
   # @param path [String] The path to the requested resource.
@@ -1063,7 +1053,7 @@ class Carcass.Client
         webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
         haveProperties: properties instanceof Array and properties.length,
         properties: properties,
-        namespaces: Carcass.utils.readNamespaces(properties)
+        namespaces: @readNamespaces(properties)
       }
     ))
     
@@ -1104,7 +1094,7 @@ class Carcass.Client
         webdavSchema: Carcass.WEBDAV_NAMESPACE_URI,
         setProperties: setProperties,
         deleteProperties: deleteProperties,
-        namespaces: Carcass.utils.readNamespaces(setProperties)
+        namespaces: @readNamespaces(setProperties)
       },
       {
         value: Carcass.RequestTemplate.PROPPATCH_VALUE
