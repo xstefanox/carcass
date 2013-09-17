@@ -12,64 +12,74 @@ module.exports = (grunt) ->
     clean:
       build: 'build'
       release: 'dist'
-      test: [ 'test/data', 'test/test.js' ]
+      test: [ 'test/test.js', 'test/node.js' ]
       docs: 'docs'
     
     coffeelint:
-      app: 'src/carcass.coffee'
+      app: 'src/<%= pkg.name %>.coffee'
       test: 'test/**/*.coffee'
       grunt: 'Gruntfile.coffee'
 
     coffee:
       app:
         files:
-          'build/carcass.js': 'src/carcass.coffee'
+          'build/<%= pkg.name %>.js': 'src/<%= pkg.name %>.coffee'
         options:
           bare: true
       test:
         files:
           'test/test.js': 'test/test.coffee'
+          'test/node.js': 'test/node.coffee'
     
     umd:
-      src: 'build/carcass.js'
+      src: 'build/<%= pkg.name %>.js'
       dependencies:
         commonjs: [ 'mustache', 'xmlhttprequest' ]
         browser: [ 'Mustache', 'XMLHttpRequest' ]
         
     jshint:
-      app: 'build/carcass.js'
-      test: 'test/test.js'
+      app: 'build/<%= pkg.name %>.js'
+      test: 'test/**/*.js'
       
     watch:
       app:
-        files: [ 'Gruntfile.coffee', 'src/carcass.coffee' ]
-        tasks: [
-          'coffeelint:grunt', 'coffeelint:app', 'coffee:app', 'umd', 'uglify'
-        ]
+        files: [ 'Gruntfile.coffee', 'src/<%= pkg.name %>.coffee' ]
+        tasks: [ 'coffeelint:grunt', 'coffeelint:app', 'coffee:app', 'umd' ]
         options:
           nospawn: false
       test:
-        files: [ 'Gruntfile.coffee', 'test/test.coffee' ]
-        tasks: [ 'coffeelint:grunt', 'coffeelint:test' ]
+        files: [ 'Gruntfile.coffee', 'test/**/*.coffee' ]
+        tasks: [ 'coffeelint:grunt', 'coffeelint:test', 'coffee:test' ]
         options:
           nospawn: false
 
     # test
 
+    symlink:
+      test:
+        link: 'test/<%= pkg.name %>.js'
+        target: '../build/<%= pkg.name %>.js'
+        options:
+          overwrite: true
+          force: true
+
     qunit:
       all:
         options:
-          urls: [ 'http://localhost:8000/test.html' ]
-    
+          urls: [ 'http://localhost:8080/test.html' ]
+
+    nodeunit:
+      app: 'test/node.js'
+
     # documentation
     
     docco:
-      src: 'src/carcass.coffee'
+      src: 'src/<%= pkg.name %>.coffee'
       options:
         output: 'docs/src'
 
     codo:
-      src: 'src/carcass.coffee'
+      src: 'src/<%= pkg.name %>.coffee'
       options:
         output: 'docs/api'
         title: 'Carcass API Documentation'
@@ -79,7 +89,7 @@ module.exports = (grunt) ->
     uglify:
       dist:
         files:
-          'dist/carcass.min.js': 'build/carcass.js'
+          'dist/<%= pkg.name %>.min.js': 'build/<%= pkg.name %>.js'
       options:
         banner: '/* <%= pkg.title || pkg.name %> -
  v<%= pkg.version %> -
@@ -94,9 +104,11 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-watch')
   grunt.loadNpmTasks('grunt-contrib-jshint')
   grunt.loadNpmTasks('grunt-contrib-qunit')
+  grunt.loadNpmTasks('grunt-contrib-nodeunit')
+  grunt.loadNpmTasks('grunt-contrib-symlink')
   grunt.loadNpmTasks('grunt-coffeelint')
   grunt.loadNpmTasks('grunt-docco')
-
+  
   grunt.registerTask('umd', 'Surrounds the code with the UMD', ->
     
     # prepare the UMD template
@@ -120,7 +132,7 @@ module.exports = (grunt) ->
     pkg = grunt.config.get('pkg')
     
     # replace the placeholders and write the result
-    grunt.file.write('build/carcass.js', umdTemplate
+    grunt.file.write("build/#{pkg.name}.js", umdTemplate
       .replace(/<commonJsDeps>/g,
         (for dep in config.dependencies.commonjs
           "require('#{dep}')").join(', '))
@@ -146,7 +158,7 @@ module.exports = (grunt) ->
       node: "#{__dirname}/test"
       locksBackend: FSLocksBackend.new("#{__dirname}/test")
 
-    serverPort = 8000
+    serverPort = 8080
 
     grunt.log.writeln("Starting WebDAV server on port #{serverPort}")
 
@@ -173,11 +185,11 @@ module.exports = (grunt) ->
   
   # create a persistent server for development
   grunt.registerTask('dev', [ 'coffeelint:grunt', 'coffeelint:app',
-    'coffee:app', 'umd', 'server', 'watch' ])
+    'coffee', 'umd', 'symlink', 'server', 'watch' ])
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'server', 'qunit' ])
+    'symlink', 'server', 'qunit', 'nodeunit' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])

@@ -4,6 +4,11 @@
 
 # Required ES5 features: Object.keys
 
+# NPM module for XMLHttpRequest contains the real XMLHttpRequest into a
+# property inside the module
+if XMLHttpRequest.XMLHttpRequest?
+  XMLHttpRequest = XMLHttpRequest.XMLHttpRequest
+
 # -----------------------------------------------------------------------------
 # EXCEPTIONS
 # -----------------------------------------------------------------------------
@@ -458,18 +463,22 @@ Carcass.Handler.PROPFIND =
   success: ->
             
     throw new Carcass.EmptyResponse('PROPFIND') if not this.responseXML?
-            
+    
+    xpath = new Carcass.XPathResolver(this.responseXML)
+    nsResolver = xpath.nsResolver
     # create the namespace resolver from the XML document
-    nsResolver = this.responseXML.createNSResolver(
-      this.responseXML.documentElement)
+    #nsResolver = this.responseXML.createNSResolver(
+    #  this.responseXML.documentElement)
 
+    nodes = xpath.getNodeList(Carcass.XPathQuery.RESOURCES)
+    
     # get the list of resource nodes in the response
-    nodes = this.responseXML.evaluate(
-      Carcass.XPathQuery.RESOURCES,
-      this.responseXML,
-      nsResolver,
-      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-      null)
+    #nodes = this.responseXML.evaluate(
+    #  Carcass.XPathQuery.RESOURCES,
+    #  this.responseXML,
+    #  nsResolver,
+    #  XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    #  null)
 
     # create a resource object from each XML resource element and save
     # it into a simple list
@@ -481,20 +490,37 @@ Carcass.Handler.PROPFIND =
       node = nodes.snapshotItem(i)
 
       # create the resource object
-      if this.responseXML.evaluate(
-        Carcass.XPathQuery.IS_COLLECTION,
-        node,
-        nsResolver,
-        XPathResult.BOOLEAN_TYPE,
-        null).booleanValue
-              
+      #if this.responseXML.evaluate(
+      #  Carcass.XPathQuery.IS_COLLECTION,
+      #  node,
+      #  nsResolver,
+      #  XPathResult.BOOLEAN_TYPE,
+      #  null).booleanValue
+      
+      if xpath.getBoolean(Carcass.XPathQuery.IS_COLLECTION)
+        
         currentResource = new Carcass.Collection()
               
       else
               
-        currentResource  = new Carcass.Resource()
+        currentResource = new Carcass.Resource()
 
       # set the resource fields
+      currentResource.href = xpath.getString(Carcass.XPathQuery.RESOURCE_HREF)
+              
+      currentResource.ctime = xpath.getString(
+        Carcass.XPathQuery.RESOURCE_CTIME)
+              
+      currentResource.mtime = xpath.getString(
+        Carcass.XPathQuery.RESOURCE_MTIME)
+              
+      currentResource.etag = xpath.getString(
+        Carcass.XPathQuery.RESOURCE_ETAG).replace(/(^")|("$)/g, '')
+              
+      currentResource.mimeType = xpath.getString(
+        Carcass.XPathQuery.RESOURCE_MIME_TYPE)
+        
+      ###
       currentResource.href = this.responseXML.evaluate(
         Carcass.XPathQuery.RESOURCE_HREF,
         node,
@@ -529,7 +555,8 @@ Carcass.Handler.PROPFIND =
         nsResolver,
         XPathResult.STRING_TYPE,
         null).stringValue
-              
+      ###
+
       # the mime type node could not exist if the resource mime type is
       # unknown
       currentResource.mimeType = null if currentResource.mimeType is ''
@@ -537,12 +564,15 @@ Carcass.Handler.PROPFIND =
       # only simple resources have the size field
       if not currentResource instanceof Carcass.Collection
 
-        currentResource.size = this.responseXML.evaluate(
-          Carcass.XPathQuery.RESOURCE_SIZE,
-          node,
-          nsResolver,
-          XPathResult.NUMBER_TYPE,
-          null).numberValue
+        #currentResource.size = this.responseXML.evaluate(
+        #  Carcass.XPathQuery.RESOURCE_SIZE,
+        #  node,
+        #  nsResolver,
+        #  XPathResult.NUMBER_TYPE,
+        #  null).numberValue
+
+        currentResource.size = xpath.getNumber(
+          Carcass.XPathQuery.RESOURCE_SIZE)
 
       resources.push(currentResource)
           
@@ -639,7 +669,7 @@ class Carcass.Resource
   # @return [String] A string description of this object.
   #
   toString: ->
-    return "[object Carcass.Resource]"
+    return '[object Carcass.Resource]'
 
 # An object of this class identifies a collection of WebDAV resources.
 #
@@ -656,7 +686,65 @@ class Carcass.Collection extends Carcass.Resource
   # @return [String] A string description of this object.
   #
   toString: ->
-    return "[object Carcass.Collection]"
+    return '[object Carcass.Collection]'
+
+class Carcass.XPathResolver
+  
+  xmlDocument: null
+  nsResolver: null
+  evaluator: null
+  
+  constructor: (@xmlDocument) ->
+
+    @evaluator = new XPathEvaluator()
+    
+    if xmlDocument.createNSResolver?
+      
+      @nsResolver = xmlDocument.createNSResolver(xmlDocument.documentElement)
+
+  getNodeList: (xpath) ->
+    
+    @evaluator.evaluate(
+      xpath,
+      @xmlDocument,
+      @nsResolver,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null)
+
+  getBoolean: (xpath) ->
+    
+    @evaluator.evaluate(
+      xpath,
+      @xmlDocument,
+      @nsResolver,
+      XPathResult.BOOLEAN_TYPE,
+      null).booleanValue
+
+  getString: (xpath) ->
+    
+    @evaluator.evaluate(
+      xpath,
+      @xmlDocument,
+      @nsResolver,
+      XPathResult.STRING_TYPE,
+      null).stringValue
+
+  getNumber: (xpath) ->
+    
+    @evaluator.evaluate(
+      xpath,
+      @xmlDocument,
+      @nsResolver,
+      XPathResult.NUMBER_TYPE,
+      null).numberValue
+
+  # Return a string description of this object, useful when printing the
+  # object to the console.
+  #
+  # @return [String] A string description of this object.
+  #
+  toString: ->
+    return '[object Carcass.XPathResolver]'
     
 # -----------------------------------------------------------------------------
 # CLIENT
