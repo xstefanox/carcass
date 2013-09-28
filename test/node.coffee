@@ -6,6 +6,6 @@ exports.PROPFIND = (test) ->
   
   c.PROPFIND '/', 1, null, (success, statusText, root, resources) ->
 
-    test.strictEqual(resources.length, 11, 'Number of resources')
+    test.strictEqual(resources.length, 6, 'Number of resources')
     
     test.done()

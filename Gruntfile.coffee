@@ -20,10 +20,18 @@ module.exports = (grunt) ->
       test: 'test/**/*.coffee'
       grunt: 'Gruntfile.coffee'
 
+    concat:
+      app:
+        src: [ 'src/intro.coffee', 'src/exceptions.coffee',
+               'src/constants.coffee', 'src/templates.coffee',
+               'src/xpath.coffee', 'src/resources.coffee',
+               'src/handlers.coffee', 'src/client.coffee' ]
+        dest: 'build/<%= pkg.name %>.coffee'
+    
     coffee:
       app:
         files:
-          'build/<%= pkg.name %>.js': 'src/<%= pkg.name %>.coffee'
+          'build/<%= pkg.name %>.js': 'build/<%= pkg.name %>.coffee'
         options:
           bare: true
       test:
@@ -43,7 +51,7 @@ module.exports = (grunt) ->
       
     watch:
       app:
-        files: [ 'Gruntfile.coffee', 'src/<%= pkg.name %>.coffee' ]
+        files: [ 'Gruntfile.coffee', 'src/*.coffee' ]
         tasks: [ 'coffeelint:grunt', 'coffeelint:app', 'coffee:app', 'umd' ]
         options:
           nospawn: false
@@ -55,14 +63,11 @@ module.exports = (grunt) ->
 
     # test
 
-    symlink:
+    copy:
       test:
-        link: 'test/<%= pkg.name %>.js'
-        target: '../build/<%= pkg.name %>.js'
-        options:
-          overwrite: true
-          force: true
-
+        src: 'build/<%= pkg.name %>.js'
+        dest: 'test/<%= pkg.name %>.js'
+    
     qunit:
       all:
         options:
@@ -105,7 +110,8 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-jshint')
   grunt.loadNpmTasks('grunt-contrib-qunit')
   grunt.loadNpmTasks('grunt-contrib-nodeunit')
-  grunt.loadNpmTasks('grunt-contrib-symlink')
+  grunt.loadNpmTasks('grunt-contrib-copy')
+  grunt.loadNpmTasks('grunt-contrib-concat')
   grunt.loadNpmTasks('grunt-coffeelint')
   grunt.loadNpmTasks('grunt-docco')
   
@@ -185,15 +191,15 @@ module.exports = (grunt) ->
   
   # create a persistent server for development
   grunt.registerTask('dev', [ 'coffeelint:grunt', 'coffeelint:app',
-    'coffee', 'umd', 'symlink', 'server', 'watch' ])
+    'concat', 'coffee', 'umd', 'copy', 'server', 'watch' ])
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'coffee', 'umd', 'symlink', 'server', 'qunit' ])
+    'concat', 'coffee', 'umd', 'copy', 'server', 'qunit' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])
   
   # default task
   grunt.registerTask('default', [ 'coffeelint:grunt', 'coffeelint:app',
-    'coffee:app', 'umd', 'test', 'uglify', 'docs' ])
+    'concat:app', 'coffee:app', 'umd', 'test', 'uglify', 'docs' ])
