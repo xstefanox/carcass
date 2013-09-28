@@ -12,7 +12,7 @@ module.exports = (grunt) ->
     clean:
       build: 'build'
       release: 'dist'
-      test: [ 'test/test.js', 'test/node.js' ]
+      test: [ 'test/test.js', 'test/node.js', 'test/carcass.js' ]
       docs: 'docs'
     
     coffeelint:
@@ -189,7 +189,7 @@ module.exports = (grunt) ->
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'symlink', 'server', 'qunit' ])
+    'coffee', 'umd', 'symlink', 'server', 'qunit' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])

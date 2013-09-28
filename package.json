@@ -5,6 +5,7 @@
   "author": "Stefano Varesi <stefano.varesi@gmail.com>",
   "description": "A Javascript WebDAV client",
   "main": "carcass.js",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/xstefanox/carcass.git"
@@ -30,5 +31,7 @@
     "grunt-docco": "~0.2.0",
     "jsDAV": "~0.3.0"
   },
-  "license": "MIT"
+  "scripts": {
+    "test": "grunt test"
+  }
 }
