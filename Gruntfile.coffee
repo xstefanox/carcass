@@ -189,7 +189,7 @@ module.exports = (grunt) ->
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'symlink', 'server', 'qunit', 'nodeunit' ])
+    'symlink', 'server', 'qunit' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])

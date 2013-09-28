@@ -924,7 +924,7 @@ class Carcass.Client
 
       # remove the indexes from the list and obtain a plain array, which is
       # needed by Mustache
-      for own name, schema in schemas
+      for own name, schema of schemas
         namespaces.push(schema)
     
     return namespaces
