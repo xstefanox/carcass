@@ -1,4 +1,4 @@
-Carcass
+Carcass [![Build Status](https://travis-ci.org/xstefanox/Carcass.png?branch=master)](https://travis-ci.org/xstefanox/Carcass)
 =======
 
 Carcass is a Javascript WebDAV client for web browsers.
