@@ -82,12 +82,12 @@ module.exports = (grunt) ->
     # documentation
     
     docco:
-      src: 'src/<%= pkg.name %>.coffee'
+      src: 'src/*.coffee'
       options:
         output: 'docs/src'
 
     codo:
-      src: 'src/<%= pkg.name %>.coffee'
+      src: 'src/*.coffee'
       options:
         output: 'docs/api'
         title: 'Carcass API Documentation'
@@ -142,14 +142,17 @@ module.exports = (grunt) ->
   # a task used to generate the API documentation
   grunt.registerTask('codo', 'Generate source documentation', ->
     
+    glob = require("glob")
+    
     done = this.async()
     
     exec = require('child_process').exec
     config = grunt.config.get(this.name)
     pkg = grunt.config.get('pkg')
+    
     cmd = "codo --name '#{pkg.title || pkg.name}' --title
           '#{config.options.title}' --output-dir '#{config.options.output}'
-          '#{config.src}'"
+          #{("'#{file}'" for file in glob.sync(config.src)).join(' ')}"
     
     cp = exec(cmd, null, -> done())
     
