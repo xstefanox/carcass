@@ -40,10 +40,13 @@ module.exports = (grunt) ->
           'test/node.js': 'test/node.coffee'
     
     umd:
-      src: 'build/<%= pkg.name %>.js'
-      dependencies:
-        commonjs: [ 'mustache', 'xmlhttprequest' ]
-        browser: [ 'Mustache', 'XMLHttpRequest' ]
+      app:
+        src: 'build/<%= pkg.name %>.js'
+        objectToExport: 'Carcass'
+        globalAlias: 'Carcass'
+        deps:
+          cjs: [ 'mustache', 'xmlhttprequest' ]
+          amd: [ 'Mustache', 'XMLHttpRequest' ]
         
     jshint:
       app: 'build/<%= pkg.name %>.js'
@@ -94,7 +97,8 @@ module.exports = (grunt) ->
     uglify:
       dist:
         files:
-          'dist/<%= pkg.name %>.min.js': 'build/<%= pkg.name %>.js'
+          'dist/<%= pkg.name %>-<%= pkg.version %>.min.js':
+            'build/<%= pkg.name %>.js'
       options:
         banner: '/* <%= pkg.title || pkg.name %> -
  v<%= pkg.version %> -
@@ -102,6 +106,8 @@ module.exports = (grunt) ->
  <%= pkg.license %> License */'
 
   )
+  
+  grunt.util.linefeed = '\r\n'
   
   grunt.loadNpmTasks('grunt-contrib-clean')
   grunt.loadNpmTasks('grunt-contrib-coffee')
@@ -114,45 +120,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-concat')
   grunt.loadNpmTasks('grunt-coffeelint')
   grunt.loadNpmTasks('grunt-docco')
-  
-  grunt.registerTask('umd', 'Surrounds the code with the UMD', ->
-    
-    # prepare the UMD template
-    umdTemplate =
-      """
-(function (root, factory) {
-    if (typeof exports === 'object') {
-        factory(exports, <commonJsDeps>);
-    } else if (typeof define === 'function' && define.amd) {
-        define([ 'exports', <amdDeps> ], factory);
-    } else {
-        factory((root.<moduleName> = {}), <browserDeps>);
-    }
-}(this, function (<moduleName>, <factoryDeps>) {
-<code>
-}));
-      """
-    
-    # read the configuration
-    config = grunt.config.get(this.name)
-    pkg = grunt.config.get('pkg')
-    
-    # replace the placeholders and write the result
-    grunt.file.write("build/#{pkg.name}.js", umdTemplate
-      .replace(/<commonJsDeps>/g,
-        (for dep in config.dependencies.commonjs
-          "require('#{dep}')").join(', '))
-      .replace(/<amdDeps>/g,
-        (for dep in config.dependencies.commonjs
-          "'#{dep}'").join(', '))
-      .replace(/<browserDeps>/g,
-        (for dep in config.dependencies.browser
-          "root.#{dep}").join(', '))
-      .replace(/<factoryDeps>/g, config.dependencies.browser.join(', '))
-      .replace(/<moduleName>/g, pkg.title || pkg.name)
-      .replace(/<code>/g, grunt.file.read(config.src))
-    )
-  )
+  grunt.loadNpmTasks('grunt-umd')
   
   # a server task that creates a WebDAV server serving the test directory
   grunt.registerTask('server', 'Create a WebDAV server', ->
