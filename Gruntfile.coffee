@@ -12,7 +12,9 @@ module.exports = (grunt) ->
     clean:
       build: 'build'
       release: 'dist'
-      test: [ 'test/test.js', 'test/node.js', 'test/carcass.js', 'test/specs/*.js' ]
+      test: [
+        'test/test.js', 'test/node.js',
+        'test/carcass.js', 'test/specs/*.js' ]
       docs: 'docs'
     
     coffeelint:
@@ -79,6 +81,13 @@ module.exports = (grunt) ->
         options:
           urls: [ 'http://localhost:8080/test.html' ]
 
+    'node-qunit':
+      app:
+        code: 'build/carcass.js'
+        tests: 'test/test.js'
+        done: (err, res) ->
+          !err && publishResults("node", res, this.async())
+      
     nodeunit:
       app: 'test/node.js'
 
@@ -123,6 +132,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-coffeelint')
   grunt.loadNpmTasks('grunt-docco')
   grunt.loadNpmTasks('grunt-umd')
+  grunt.loadNpmTasks('grunt-node-qunit')
   
   # a server task that creates a WebDAV server serving the test directory
   grunt.registerTask('server', 'Create a WebDAV server', ->
@@ -168,7 +178,7 @@ module.exports = (grunt) ->
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'coffee', 'umd', 'copy', 'server', 'jasmine' ])
+    'coffee', 'umd', 'copy', 'server', 'qunit' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])
