@@ -5,3 +5,4 @@ docs
 test/carcass.js
 test/test.js
 test/node.js
+test/specs/*.js

@@ -12,32 +12,31 @@ module.exports = (grunt) ->
     clean:
       build: 'build'
       release: 'dist'
-      test: [ 'test/test.js', 'test/node.js', 'test/carcass.js' ]
+      test: [ 'test/test.js', 'test/node.js', 'test/carcass.js', 'test/specs/*.js' ]
       docs: 'docs'
     
     coffeelint:
-      app: 'src/<%= pkg.name %>.coffee'
+      app: 'src/*.coffee'
       test: 'test/**/*.coffee'
       grunt: 'Gruntfile.coffee'
-
-    concat:
-      app:
-        src: [ 'src/intro.coffee', 'src/exceptions.coffee',
-               'src/constants.coffee', 'src/templates.coffee',
-               'src/xpath.coffee', 'src/resources.coffee',
-               'src/handlers.coffee', 'src/client.coffee' ]
-        dest: 'build/<%= pkg.name %>.coffee'
     
     coffee:
       app:
         files:
-          'build/<%= pkg.name %>.js': 'build/<%= pkg.name %>.coffee'
+          'build/<%= pkg.name %>.js': [
+               'src/intro.coffee', 'src/exceptions.coffee',
+               'src/constants.coffee', 'src/templates.coffee',
+               'src/xpath.coffee', 'src/resources.coffee',
+               'src/handlers.coffee', 'src/client.coffee' ]
         options:
           bare: true
+          join: true
+          sourceMap: true
       test:
         files:
           'test/test.js': 'test/test.coffee'
           'test/node.js': 'test/node.coffee'
+          'test/specs/propfind_spec.js': 'test/specs/propfind_spec.coffee'
     
     umd:
       app:
@@ -47,10 +46,6 @@ module.exports = (grunt) ->
         deps:
           cjs: [ 'mustache', 'xmlhttprequest' ]
           amd: [ 'Mustache', 'XMLHttpRequest' ]
-        
-    jshint:
-      app: 'build/<%= pkg.name %>.js'
-      test: 'test/**/*.js'
       
     watch:
       app:
@@ -70,6 +65,14 @@ module.exports = (grunt) ->
       test:
         src: 'build/<%= pkg.name %>.js'
         dest: 'test/<%= pkg.name %>.js'
+    
+    jasmine:
+      app:
+        src: 'build/<%= pkg.name %>.js'
+        options:
+          specs: 'test/specs/*_spec.js'
+          outfile: 'test/runner.html'
+          host: 'http://localhost:8080'
     
     qunit:
       all:
@@ -113,11 +116,10 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-coffee')
   grunt.loadNpmTasks('grunt-contrib-uglify')
   grunt.loadNpmTasks('grunt-contrib-watch')
-  grunt.loadNpmTasks('grunt-contrib-jshint')
   grunt.loadNpmTasks('grunt-contrib-qunit')
   grunt.loadNpmTasks('grunt-contrib-nodeunit')
+  grunt.loadNpmTasks('grunt-contrib-jasmine')
   grunt.loadNpmTasks('grunt-contrib-copy')
-  grunt.loadNpmTasks('grunt-contrib-concat')
   grunt.loadNpmTasks('grunt-coffeelint')
   grunt.loadNpmTasks('grunt-docco')
   grunt.loadNpmTasks('grunt-umd')
@@ -162,15 +164,15 @@ module.exports = (grunt) ->
   
   # create a persistent server for development
   grunt.registerTask('dev', [ 'coffeelint:grunt', 'coffeelint:app',
-    'concat', 'coffee', 'umd', 'copy', 'server', 'watch' ])
+    'coffee', 'umd', 'copy', 'server', 'watch' ])
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'concat', 'coffee', 'umd', 'copy', 'server', 'qunit' ])
+    'coffee', 'umd', 'copy', 'server', 'jasmine' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])
   
   # default task
   grunt.registerTask('default', [ 'coffeelint:grunt', 'coffeelint:app',
-    'concat:app', 'coffee:app', 'umd', 'test', 'uglify', 'docs' ])
+    'coffee:app', 'umd', 'test', 'uglify', 'docs' ])
