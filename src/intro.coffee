@@ -8,7 +8,7 @@
 root = exports ? this
 
 # get the XMLHttpRequest object from the global namespace
-XMLHttpRequest = root.XMLHttpRequest
+#XMLHttpRequest = root.XMLHttpRequest
 
 # NPM module for XMLHttpRequest contains the real XMLHttpRequest into a
 # property inside the module

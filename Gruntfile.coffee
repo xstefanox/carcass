@@ -13,8 +13,8 @@ module.exports = (grunt) ->
       build: 'build'
       release: 'dist'
       test: [
-        'test/test.js', 'test/node.js',
-        'test/carcass.js', 'test/specs/*.js' ]
+        'test/qunit-tests.js', 'test/nodeunit-tests.js',
+        'test/carcass.js', 'test/lib' ]
       docs: 'docs'
     
     coffeelint:
@@ -36,9 +36,8 @@ module.exports = (grunt) ->
           sourceMap: true
       test:
         files:
-          'test/test.js': 'test/test.coffee'
-          'test/node.js': 'test/node.coffee'
-          'test/specs/propfind_spec.js': 'test/specs/propfind_spec.coffee'
+          'test/qunit-tests.js': 'test/qunit-tests.coffee'
+          'test/nodeunit-tests.js': 'test/nodeunit-tests.coffee'
     
     umd:
       app:
@@ -46,6 +45,7 @@ module.exports = (grunt) ->
         objectToExport: 'Carcass'
         globalAlias: 'Carcass'
         deps:
+          default: [ 'Mustache', 'XMLHttpRequest' ]
           cjs: [ 'mustache', 'xmlhttprequest' ]
           amd: [ 'Mustache', 'XMLHttpRequest' ]
       
@@ -67,14 +67,11 @@ module.exports = (grunt) ->
       test:
         src: 'build/<%= pkg.name %>.js'
         dest: 'test/<%= pkg.name %>.js'
-    
-    jasmine:
-      app:
-        src: 'build/<%= pkg.name %>.js'
+
+    bower:
+      test:
         options:
-          specs: 'test/specs/*_spec.js'
-          outfile: 'test/runner.html'
-          host: 'http://localhost:8080'
+          copy: false
     
     qunit:
       all:
@@ -82,14 +79,11 @@ module.exports = (grunt) ->
           urls: [ 'http://localhost:8080/test.html' ]
 
     'node-qunit':
-      app:
-        code: 'build/carcass.js'
-        tests: 'test/test.js'
+      all:
+        code: 'build/<%= pkg.name %>.js'
+        tests: 'test/qunit-tests.js'
         done: (err, res) ->
-          !err && publishResults("node", res, this.async())
-      
-    nodeunit:
-      app: 'test/node.js'
+          !err && publishResults('node', res, this.async())
 
     # documentation
     
@@ -126,12 +120,12 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-uglify')
   grunt.loadNpmTasks('grunt-contrib-watch')
   grunt.loadNpmTasks('grunt-contrib-qunit')
-  grunt.loadNpmTasks('grunt-contrib-nodeunit')
-  grunt.loadNpmTasks('grunt-contrib-jasmine')
   grunt.loadNpmTasks('grunt-contrib-copy')
   grunt.loadNpmTasks('grunt-coffeelint')
   grunt.loadNpmTasks('grunt-docco')
   grunt.loadNpmTasks('grunt-umd')
+  grunt.loadNpmTasks('grunt-bower-task')
+
   grunt.loadNpmTasks('grunt-node-qunit')
   
   # a server task that creates a WebDAV server serving the test directory
@@ -178,7 +172,7 @@ module.exports = (grunt) ->
   
   # run all the tests
   grunt.registerTask('test', [ 'coffeelint:test', 'coffee:test',
-    'coffee', 'umd', 'copy', 'server', 'qunit' ])
+    'coffee', 'umd', 'copy', 'bower:test', 'server', 'qunit' ])
 
   # generate the project documentation
   grunt.registerTask('docs', [ 'docco', 'codo' ])

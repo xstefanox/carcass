@@ -2,7 +2,6 @@ node_modules
 build
 dist
 docs
-test/carcass.js
-test/test.js
-test/node.js
-test/specs/*.js
+test/*.js
+test/lib
+.idea
