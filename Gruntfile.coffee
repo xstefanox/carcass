@@ -156,8 +156,8 @@ module.exports = (grunt) ->
     config = grunt.config.get(this.name)
     pkg = grunt.config.get('pkg')
     
-    cmd = "codo --name '#{pkg.title || pkg.name}' --title
-          '#{config.options.title}' --output-dir '#{config.options.output}'
+    cmd = "node_modules/codo/bin/codo --name '#{pkg.title || pkg.name}' --title
+          '#{config.options.title}' --output '#{config.options.output}'
           #{("'#{file}'" for file in glob.sync(config.src)).join(' ')}"
     
     cp = exec(cmd, null, -> done())

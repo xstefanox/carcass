@@ -31,7 +31,8 @@
     "grunt-umd": "~1.3.0",
     "glob": "~3.2.7",
     "grunt-node-qunit": "~2.0.2",
-    "grunt-bower-task": "~0.3.4"
+    "grunt-bower-task": "~0.3.4",
+    "codo": "^2.0.8"
   },
   "scripts": {
     "test": "grunt test"
