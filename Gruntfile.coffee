@@ -33,6 +33,7 @@ module.exports = (grunt) ->
         options:
           bare: true
           join: true
+          joinExt: '.coffee'
           sourceMap: true
       test:
         files:

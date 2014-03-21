@@ -18,21 +18,21 @@
     "mustache": "~0.7.3"
   },
   "devDependencies": {
+    "codo": "^2.0.8",
+    "glob": "~3.2.7",
+    "grunt-bower-task": "~0.3.4",
+    "grunt-coffeelint": "*",
     "grunt-contrib-clean": "^0.5.0",
-    "grunt-contrib-coffee": "~0.6.7",
+    "grunt-contrib-coffee": "^0.10.1",
+    "grunt-contrib-copy": "^0.5.0",
+    "grunt-contrib-nodeunit": "^0.3.3",
+    "grunt-contrib-qunit": "^0.4.0",
     "grunt-contrib-uglify": "^0.4.0",
     "grunt-contrib-watch": "^0.6.1",
-    "grunt-contrib-qunit": "^0.4.0",
-    "grunt-contrib-nodeunit": "^0.3.3",
-    "grunt-contrib-copy": "^0.5.0",
-    "grunt-coffeelint": "*",
-    "grunt-docco": "~0.2.0",
-    "jsDAV": "~0.3.0",
-    "grunt-umd": "^1.7.3",
-    "glob": "~3.2.7",
+    "grunt-docco": "^0.3.3",
     "grunt-node-qunit": "~2.0.2",
-    "grunt-bower-task": "~0.3.4",
-    "codo": "^2.0.8"
+    "grunt-umd": "^1.7.3",
+    "jsDAV": "~0.3.0"
   },
   "scripts": {
     "test": "grunt test"
