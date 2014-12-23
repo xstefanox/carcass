@@ -2,8 +2,8 @@ Carcass [![GitHub version](https://badge.fury.io/gh/xstefanox%2FCarcass.png)](ht
 =======
 
 [![Build Status](https://travis-ci.org/xstefanox/Carcass.png?branch=master)](https://travis-ci.org/xstefanox/Carcass)
-[![Dependencies](https://david-dm.org/xstefanox/Carcass.png)](https://david-dm.org/xstefanox/Carcass)
-[![Project Status](http://stillmaintained.com/xstefanox/Carcass.png)](http://stillmaintained.com/xstefanox/Carcass)
+[![Dependency Status](https://david-dm.org/xstefanox/Carcass.svg?style=flat-square)](https://david-dm.org/xstefanox/Carcass)
+[![Project Status](https://stillmaintained.com/xstefanox/Carcass.png)](https://stillmaintained.com/xstefanox/Carcass)
 
 Carcass is a Javascript WebDAV client for web browsers.
 

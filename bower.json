@@ -1,7 +1,7 @@
 {
   "name": "Carcass tests",
   "main": "test.js",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "homepage": "https://github.com/xstefanox/Carcass",
   "authors": [
     "Stefano Varesi <stefano.varesi@gmail.com>"
@@ -17,7 +17,7 @@
   ],
   "componentsDirectory": "test/bower_components",
   "dependencies": {
-    "mustache": "~0.8.0"
+    "mustache": "~1.0"
   },
   "devDependencies": {
     "qunit": "~1.13.0"
