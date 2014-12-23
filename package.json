@@ -1,7 +1,7 @@
 {
   "title": "Carcass",
   "name": "carcass",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Stefano Varesi <stefano.varesi@gmail.com>",
   "description": "A Javascript WebDAV client",
   "main": "carcass.js",
@@ -15,15 +15,15 @@
     "client"
   ],
   "dependencies": {
-    "mustache": "^0.8.1"
+    "mustache": "^1.0.0"
   },
   "devDependencies": {
     "codo": "^2.0.8",
     "glob": "~3.2.7",
-    "grunt-bower-task": "~0.3.4",
+    "grunt-bower-task": "^0.4.0",
     "grunt-coffeelint": "*",
-    "grunt-contrib-clean": "^0.5.0",
-    "grunt-contrib-coffee": "^0.10.1",
+    "grunt-contrib-clean": "^0.6.0",
+    "grunt-contrib-coffee": "^0.12.0",
     "grunt-contrib-copy": "^0.5.0",
     "grunt-contrib-nodeunit": "^0.3.3",
     "grunt-contrib-qunit": "^0.4.0",
