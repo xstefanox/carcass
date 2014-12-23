@@ -31,7 +31,7 @@
     "grunt-contrib-watch": "^0.6.0",
     "grunt-docco": "^0.3.3",
     "grunt-node-qunit": "~2.0.2",
-    "grunt-umd": "^1.7.3",
+    "grunt-umd": "^2.2.1",
     "jsDAV": "^0.3.2"
   },
   "scripts": {

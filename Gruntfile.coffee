@@ -42,13 +42,15 @@ module.exports = (grunt) ->
     
     umd:
       app:
-        src: 'build/<%= pkg.name %>.js'
-        objectToExport: 'Carcass'
-        globalAlias: 'Carcass'
-        deps:
-          default: [ 'Mustache', 'XMLHttpRequest' ]
-          cjs: [ 'mustache', 'xmlhttprequest' ]
-          amd: [ 'Mustache', 'XMLHttpRequest' ]
+        options:
+          src: 'build/<%= pkg.name %>.js'
+          objectToExport: 'Carcass'
+          indent: 4
+          deps:
+            default: [ 'Mustache', 'XMLHttpRequest' ]
+            global: [ 'Mustache', 'XMLHttpRequest' ]
+            cjs: [ 'mustache', 'xmlhttprequest' ]
+            amd: [ 'Mustache', 'XMLHttpRequest' ]
       
     watch:
       app:

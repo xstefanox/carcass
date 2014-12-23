@@ -8,7 +8,7 @@ Carcass.NAME = 'Carcass.js'
 
 # The library version.
 #
-Carcass.VERSION = '0.2.0'
+Carcass.VERSION = '0.2.1'
 
 # HTTP status codes reference.
 #
