@@ -17,7 +17,7 @@
   ],
   "componentsDirectory": "test/bower_components",
   "dependencies": {
-    "mustache": "~1.0"
+    "mustache": "~0.8"
   },
   "devDependencies": {
     "qunit": "~1.13.0"
