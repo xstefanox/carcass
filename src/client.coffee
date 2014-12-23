@@ -156,7 +156,7 @@ class Carcass.Client
 
               # add the schema
               schemas[property.schema] =
-                ns: 'ns' + Object.keys(schemas).length
+                ns: 'ns' + (s for own s of schemas).length
                 schema: property.schema
 
             # add the calculated xml namespace to the property element
@@ -374,7 +374,7 @@ class Carcass.Client
       # check if the given depth is infinity
       depthIsInfinity = depth.toLowerCase? and
         depth.toLowerCase() is 'infinity'
-        
+
       # fail if the given value is invalid
       if not (depthIsInfinity or depth is 0 or depth is 1)
 
