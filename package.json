@@ -15,7 +15,8 @@
     "client"
   ],
   "dependencies": {
-    "mustache": "^2.2.1"
+    "mustache": "^2.2.1",
+    "xmlhttprequest": "^1.8.0"
   },
   "devDependencies": {
     "codo": "^2.0.8",
@@ -37,5 +38,9 @@
   },
   "scripts": {
     "test": "grunt test"
+  },
+  "engines": {
+    "node": "~6.0",
+    "npm": "~3.0"
   }
 }
